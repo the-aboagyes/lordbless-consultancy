@@ -1,0 +1,880 @@
+/* =========================================================
+   LORDBLESS CONSULTANCY
+   GLOBAL EDUCATION PATHWAY
+   ========================================================= */
+
+
+/* =========================================================
+   EDUCATION PATHWAY
+   ========================================================= */
+
+.education-pathway {
+    background: #f7f7f5;
+    border-top: 1px solid rgba(7, 26, 51, 0.08);
+    border-bottom: 1px solid rgba(7, 26, 51, 0.08);
+    padding: 100px 0;
+    scroll-margin-top: 90px;
+}
+
+.education-pathway[hidden] {
+    display: none;
+}
+
+.education-pathway-header {
+    max-width: 760px;
+    margin-bottom: 50px;
+}
+
+.education-pathway-header h2 {
+    margin-bottom: 18px;
+}
+
+.education-pathway-header p {
+    max-width: 680px;
+}
+
+
+/* =========================================================
+   EDUCATION PHASE
+   ========================================================= */
+
+.education-phase {
+    max-width: 1080px;
+    margin: 0 auto;
+}
+
+.education-phase-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 12px;
+
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+
+    color: #c9a45c;
+}
+
+.education-phase-label::before {
+    content: "";
+
+    width: 28px;
+    height: 1px;
+
+    background: #c9a45c;
+}
+
+.education-phase-title {
+    margin-bottom: 12px;
+
+    font-size: clamp(1.7rem, 3vw, 2.5rem);
+
+    color: #071a33;
+}
+
+.education-phase-description {
+    max-width: 700px;
+    margin-bottom: 36px;
+}
+
+
+/* =========================================================
+   PHASE 1 PATHWAY SELECTORS
+   ========================================================= */
+
+.education-selector-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 20px;
+}
+
+.education-field {
+    padding: 22px;
+
+    background: #ffffff;
+
+    border: 1px solid rgba(7, 26, 51, 0.10);
+    border-radius: 8px;
+}
+
+.education-field label {
+    display: block;
+    margin-bottom: 10px;
+
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+
+    color: #071a33;
+}
+
+.education-field select {
+    width: 100%;
+    min-height: 52px;
+
+    padding: 0 42px 0 15px;
+
+    border: 1px solid rgba(7, 26, 51, 0.16);
+    border-radius: 5px;
+
+    background: #ffffff;
+    color: #071a33;
+
+    font: inherit;
+
+    cursor: pointer;
+}
+
+.education-field select:focus {
+    outline: none;
+
+    border-color: #c9a45c;
+
+    box-shadow:
+        0 0 0 3px
+        rgba(201, 164, 92, 0.15);
+}
+
+
+/* =========================================================
+   PATHWAY STATUS
+   ========================================================= */
+
+.education-status {
+    margin-top: 24px;
+    padding: 18px 20px;
+
+    border-radius: 7px;
+
+    background: rgba(7, 26, 51, 0.045);
+
+    color: #435064;
+
+    font-size: 0.95rem;
+    line-height: 1.6;
+}
+
+
+/* =========================================================
+   PATHWAY ACTION
+   ========================================================= */
+
+.education-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 20px;
+
+    margin-top: 28px;
+}
+
+.education-actions .button {
+    min-width: 230px;
+
+    text-align: center;
+}
+
+.assessment-button:disabled {
+    opacity: 0.45;
+
+    cursor: not-allowed;
+
+    box-shadow: none;
+}
+
+.assessment-button.is-ready {
+    opacity: 1;
+
+    cursor: pointer;
+}
+
+
+/* =========================================================
+   PHASE 2
+   ========================================================= */
+
+.assessment-phase {
+    margin-top: 70px;
+    padding-top: 70px;
+
+    border-top: 1px solid rgba(7, 26, 51, 0.10);
+}
+
+.assessment-phase[hidden] {
+    display: none;
+}
+
+.selected-pathway {
+    display: inline-block;
+
+    margin: 8px 0 28px;
+    padding: 10px 15px;
+
+    border-radius: 5px;
+
+    background: rgba(201, 164, 92, 0.14);
+
+    color: #071a33;
+
+    font-size: 0.88rem;
+    font-weight: 700;
+}
+
+
+/* =========================================================
+   ASSESSMENT CARD
+   ========================================================= */
+
+.assessment-card {
+    padding: 34px;
+
+    background: #ffffff;
+
+    border: 1px solid rgba(7, 26, 51, 0.08);
+    border-radius: 10px;
+}
+
+.assessment-card h3 {
+    margin-bottom: 14px;
+
+    color: #071a33;
+}
+
+.assessment-card p {
+    max-width: 760px;
+}
+
+
+/* =========================================================
+   ASSESSMENT INTRO
+   ========================================================= */
+
+.assessment-form-intro {
+    max-width: 760px;
+}
+
+.assessment-form-intro h3 {
+    margin-bottom: 12px;
+}
+
+
+/* =========================================================
+   ASSESSMENT FORM
+   ========================================================= */
+
+.education-assessment-form {
+    margin-top: 34px;
+}
+
+.assessment-form-section {
+    padding-top: 30px;
+    margin-top: 30px;
+
+    border-top: 1px solid rgba(7, 26, 51, 0.08);
+}
+
+.assessment-form-section:first-child {
+    padding-top: 0;
+    margin-top: 0;
+
+    border-top: 0;
+}
+
+.assessment-form-section-title {
+    margin-bottom: 6px;
+
+    font-size: 1rem;
+
+    color: #071a33;
+}
+
+.assessment-form-section-description {
+    margin-bottom: 20px;
+
+    color: #5d6878;
+
+    font-size: 0.9rem;
+    line-height: 1.6;
+}
+
+
+/* =========================================================
+   FORM GRID
+   ========================================================= */
+
+.assessment-form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+
+    gap: 18px;
+}
+
+.assessment-form-field {
+    min-width: 0;
+}
+
+.assessment-form-field.full-width {
+    grid-column: 1 / -1;
+}
+
+
+/* =========================================================
+   FORM LABELS
+   ========================================================= */
+
+.assessment-form-field label {
+    display: block;
+
+    margin-bottom: 8px;
+
+    color: #071a33;
+
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+}
+
+.assessment-form-field label span {
+    color: #a17d39;
+}
+
+
+/* =========================================================
+   FORM CONTROLS
+   ========================================================= */
+
+.assessment-form-field input,
+.assessment-form-field select,
+.assessment-form-field textarea {
+    width: 100%;
+
+    padding: 13px 14px;
+
+    border: 1px solid rgba(7, 26, 51, 0.16);
+    border-radius: 5px;
+
+    background: #ffffff;
+    color: #071a33;
+
+    font: inherit;
+
+    transition:
+        border-color 0.2s ease,
+        box-shadow 0.2s ease;
+}
+
+.assessment-form-field input,
+.assessment-form-field select {
+    min-height: 50px;
+}
+
+.assessment-form-field textarea {
+    min-height: 120px;
+
+    resize: vertical;
+}
+
+.assessment-form-field input:focus,
+.assessment-form-field select:focus,
+.assessment-form-field textarea:focus {
+    outline: none;
+
+    border-color: #c9a45c;
+
+    box-shadow:
+        0 0 0 3px
+        rgba(201, 164, 92, 0.15);
+}
+
+
+/* =========================================================
+   FILE UPLOAD
+   ========================================================= */
+
+.assessment-form-field input[type="file"] {
+    padding: 10px;
+
+    background: #f8f8f6;
+
+    cursor: pointer;
+}
+
+.assessment-form-help {
+    margin-top: 7px;
+
+    color: #667085;
+
+    font-size: 0.78rem;
+    line-height: 1.5;
+}
+
+
+/* =========================================================
+   RADIO OPTIONS
+   ========================================================= */
+
+.assessment-radio-group {
+    display: flex;
+    flex-wrap: wrap;
+
+    gap: 10px;
+}
+
+.assessment-radio-option {
+    display: inline-flex;
+    align-items: center;
+
+    gap: 8px;
+
+    padding: 10px 13px;
+
+    border: 1px solid rgba(7, 26, 51, 0.12);
+    border-radius: 5px;
+
+    background: #ffffff;
+
+    color: #435064;
+
+    cursor: pointer;
+
+    transition:
+        border-color 0.2s ease,
+        background 0.2s ease;
+}
+
+.assessment-radio-option:hover {
+    border-color: #c9a45c;
+
+    background: #fcfbf7;
+}
+
+.assessment-radio-option input {
+    width: auto;
+
+    margin: 0;
+}
+
+
+/* =========================================================
+   CONDITIONAL ASSESSMENT
+   ========================================================= */
+
+.assessment-conditional {
+    display: none;
+
+    margin-top: 20px;
+    padding: 22px;
+
+    border: 1px solid rgba(7, 26, 51, 0.08);
+    border-radius: 7px;
+
+    background: #f8f8f6;
+}
+
+.assessment-conditional.is-visible {
+    display: block;
+}
+
+
+/* =========================================================
+   CONSENT
+   ========================================================= */
+
+.assessment-consent {
+    margin-top: 28px;
+    padding: 18px;
+
+    border-radius: 7px;
+
+    background: rgba(7, 26, 51, 0.045);
+}
+
+.assessment-consent label {
+    display: flex;
+    align-items: flex-start;
+
+    gap: 10px;
+
+    color: #435064;
+
+    font-size: 0.86rem;
+    line-height: 1.5;
+}
+
+.assessment-consent input {
+    flex: 0 0 auto;
+
+    width: auto;
+
+    margin-top: 4px;
+}
+
+
+/* =========================================================
+   PRIVACY NOTE
+   ========================================================= */
+
+.assessment-privacy-note {
+    margin-top: 16px;
+
+    color: #667085;
+
+    font-size: 0.76rem;
+    line-height: 1.5;
+}
+
+
+/* =========================================================
+   FORM ACTIONS
+   ========================================================= */
+
+.assessment-form-actions {
+    display: flex;
+    align-items: center;
+
+    gap: 14px;
+    flex-wrap: wrap;
+
+    margin-top: 28px;
+}
+
+.assessment-submit-button {
+    min-width: 260px;
+}
+
+.assessment-submit-button:disabled {
+    opacity: 0.5;
+
+    cursor: not-allowed;
+}
+
+
+/* =========================================================
+   FORM VALIDATION
+   ========================================================= */
+
+.assessment-form-field.has-error input,
+.assessment-form-field.has-error select,
+.assessment-form-field.has-error textarea {
+    border-color: #b43b2f;
+}
+
+.assessment-field-error {
+    margin-top: 6px;
+
+    color: #9a2e23;
+
+    font-size: 0.76rem;
+    line-height: 1.4;
+}
+
+
+/* =========================================================
+   SUBMISSION MESSAGE
+   ========================================================= */
+
+.assessment-form-message {
+    display: none;
+
+    margin-top: 24px;
+    padding: 22px;
+
+    border-radius: 8px;
+
+    font-size: 0.9rem;
+    line-height: 1.6;
+}
+
+.assessment-form-message.is-visible {
+    display: block;
+}
+
+.assessment-form-message.success {
+    background: #edf7ef;
+
+    border: 1px solid #b9d7bf;
+
+    color: #20562c;
+}
+
+.assessment-form-message.error {
+    background: #fff4f1;
+
+    border: 1px solid #e2b8ae;
+
+    color: #7a2617;
+}
+
+
+/* =========================================================
+   SUCCESS ACTIONS
+   ========================================================= */
+
+.assessment-success-actions {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+
+    margin-top: 18px;
+}
+
+
+/* =========================================================
+   APPROACH
+   ========================================================= */
+
+.education-approach {
+    margin-top: 80px;
+}
+
+.education-approach-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+
+    gap: 18px;
+
+    margin-top: 30px;
+}
+
+.education-approach-card {
+    padding: 24px;
+
+    background: #ffffff;
+
+    border: 1px solid rgba(7, 26, 51, 0.08);
+    border-radius: 8px;
+}
+
+.education-approach-number {
+    display: block;
+
+    margin-bottom: 14px;
+
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.10em;
+
+    color: #c9a45c;
+}
+
+.education-approach-card h3 {
+    margin-bottom: 8px;
+
+    color: #071a33;
+
+    font-size: 1.05rem;
+}
+
+
+/* =========================================================
+   MULTI-APPLICATION NOTE
+   ========================================================= */
+
+.education-note {
+    max-width: 900px;
+
+    margin: 60px auto 0;
+    padding: 24px;
+
+    background: #071a33;
+
+    border-radius: 8px;
+
+    color: #ffffff;
+
+    line-height: 1.6;
+}
+
+.education-note strong {
+    color: #e0c27a;
+}
+
+
+/* =========================================================
+   FUNDING
+   ========================================================= */
+
+.education-funding {
+    margin-top: 60px;
+    padding: 34px;
+
+    background: #ffffff;
+
+    border: 1px solid rgba(7, 26, 51, 0.08);
+    border-radius: 8px;
+}
+
+.education-funding h3 {
+    margin-bottom: 12px;
+
+    color: #071a33;
+}
+
+.education-funding-label {
+    display: inline-block;
+
+    margin-bottom: 14px;
+    padding: 7px 11px;
+
+    border-radius: 4px;
+
+    background: rgba(201, 164, 92, 0.15);
+
+    color: #071a33;
+
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+
+/* =========================================================
+   FINAL EDUCATION CTA
+   ========================================================= */
+
+.education-final-cta {
+    margin-top: 70px;
+    padding-top: 60px;
+
+    text-align: center;
+
+    border-top: 1px solid rgba(7, 26, 51, 0.10);
+}
+
+.education-final-cta h3 {
+    margin-bottom: 12px;
+
+    color: #071a33;
+}
+
+.education-final-cta p {
+    max-width: 620px;
+
+    margin: 0 auto 24px;
+}
+
+
+/* =========================================================
+   RESPONSIVE
+   ========================================================= */
+
+@media (max-width: 900px) {
+
+    .education-selector-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .education-approach-grid {
+        grid-template-columns:
+            repeat(2, minmax(0, 1fr));
+    }
+
+}
+
+
+@media (max-width: 760px) {
+
+    .assessment-card {
+        padding: 28px;
+    }
+
+}
+
+
+@media (max-width: 700px) {
+
+    .assessment-form-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .assessment-form-field.full-width {
+        grid-column: auto;
+    }
+
+    .assessment-form-actions {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .assessment-form-actions .button {
+        width: 100%;
+    }
+
+    .assessment-submit-button {
+        width: 100%;
+        min-width: 0;
+    }
+
+    .assessment-success-actions {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .assessment-success-actions .button {
+        width: 100%;
+    }
+
+}
+
+
+@media (max-width: 600px) {
+
+    .education-pathway {
+        padding: 72px 0;
+    }
+
+    .education-pathway-header {
+        margin-bottom: 36px;
+    }
+
+    .education-field {
+        padding: 18px;
+    }
+
+    .education-actions {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .education-actions .button {
+        width: 100%;
+        min-width: 0;
+    }
+
+    .assessment-phase {
+        margin-top: 50px;
+        padding-top: 50px;
+    }
+
+    .assessment-card {
+        padding: 22px;
+    }
+
+    .assessment-form-section {
+        padding-top: 26px;
+        margin-top: 26px;
+    }
+
+    .assessment-conditional {
+        padding: 18px;
+    }
+
+    .education-approach {
+        margin-top: 60px;
+    }
+
+    .education-approach-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .education-note,
+    .education-funding {
+        padding: 24px;
+    }
+
+}

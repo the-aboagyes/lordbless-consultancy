@@ -1,0 +1,846 @@
+/* ============================================
+   LORDBLESS CONSULTANCY
+   MASTER WEBSITE STYLESHEET
+   CLEAN PRODUCTION VERSION
+   ============================================ */
+
+:root {
+    --navy: #071A33;
+    --navy-light: #0D2748;
+    --gold: #C9A45C;
+    --gold-light: #E0C27A;
+    --white: #FFFFFF;
+    --off-white: #F7F5F0;
+    --light-grey: #EEF1F4;
+    --text-dark: #17202A;
+    --text-muted: #667085;
+    --border-light: rgba(7, 26, 51, 0.12);
+    --container-width: 1200px;
+    --radius-small: 6px;
+    --radius-medium: 12px;
+    --radius-large: 20px;
+    --shadow-soft: 0 10px 30px rgba(7, 26, 51, 0.08);
+    --transition: 0.3s ease;
+}
+
+/* RESET */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html {
+    scroll-behavior: smooth;
+}
+
+body {
+    font-family: Arial, Helvetica, sans-serif;
+    color: var(--text-dark);
+    background: var(--white);
+    line-height: 1.6;
+}
+
+img {
+    max-width: 100%;
+    display: block;
+}
+
+a {
+    color: inherit;
+    text-decoration: none;
+}
+
+button {
+    font: inherit;
+}
+
+/* GLOBAL CONTAINER */
+
+.container {
+    width: min(100% - 40px, var(--container-width));
+    margin-inline: auto;
+}
+
+/* HEADER */
+
+.site-header {
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    background: rgba(255, 255, 255, 0.96);
+    border-bottom: 1px solid var(--border-light);
+    backdrop-filter: blur(12px);
+}
+
+.header-container {
+    min-height: 82px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 30px;
+}
+
+/* BRAND */
+
+.brand {
+    display: flex;
+    flex-direction: column;
+    line-height: 1;
+}
+
+.brand-name {
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 1.65rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    color: var(--navy);
+}
+
+.brand-descriptor {
+    margin-top: 7px;
+    font-size: 0.62rem;
+    font-weight: 600;
+    letter-spacing: 0.28em;
+    color: var(--gold);
+}
+
+/* NAVIGATION */
+
+.main-navigation {
+    display: flex;
+    align-items: center;
+    gap: 30px;
+    font-size: 0.92rem;
+    font-weight: 600;
+}
+
+.main-navigation > a:not(.nav-cta) {
+    position: relative;
+    color: var(--navy);
+}
+
+.main-navigation > a:not(.nav-cta)::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    bottom: -7px;
+    width: 0;
+    height: 2px;
+    background: var(--gold);
+    transition: width var(--transition);
+}
+
+.main-navigation > a:not(.nav-cta):hover::after {
+    width: 100%;
+}
+
+.nav-cta {
+    padding: 12px 20px;
+    color: var(--white);
+    background: var(--navy);
+    border-radius: var(--radius-small);
+    transition: background var(--transition), transform var(--transition);
+}
+
+.nav-cta:hover {
+    background: var(--navy-light);
+    transform: translateY(-2px);
+}
+
+/* MOBILE MENU */
+
+.mobile-menu-button {
+    display: none;
+    width: 42px;
+    height: 42px;
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-small);
+    background: var(--white);
+    cursor: pointer;
+}
+
+.mobile-menu-button span {
+    display: block;
+    width: 20px;
+    height: 2px;
+    margin: 4px auto;
+    background: var(--navy);
+}
+
+/* HERO */
+
+.hero {
+    position: relative;
+    min-height: 680px;
+    display: flex;
+    align-items: center;
+    overflow: hidden;
+    color: var(--white);
+    background: linear-gradient(
+        120deg,
+        rgba(7, 26, 51, 0.98),
+        rgba(13, 39, 72, 0.92)
+    );
+}
+
+.hero::before {
+    content: "";
+    position: absolute;
+    width: 600px;
+    height: 600px;
+    right: -220px;
+    top: -180px;
+    border: 1px solid rgba(201, 164, 92, 0.25);
+    border-radius: 50%;
+}
+
+.hero::after {
+    content: "";
+    position: absolute;
+    width: 380px;
+    height: 380px;
+    right: -100px;
+    top: -70px;
+    border: 1px solid rgba(201, 164, 92, 0.15);
+    border-radius: 50%;
+}
+
+.hero-content {
+    position: relative;
+    z-index: 2;
+    max-width: 820px;
+    padding: 100px 0;
+}
+
+.hero .eyebrow,
+.section-heading .eyebrow {
+    margin-bottom: 18px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--gold);
+}
+
+.hero h1 {
+    max-width: 850px;
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: clamp(3rem, 7vw, 5.7rem);
+    line-height: 1.05;
+    font-weight: 600;
+    letter-spacing: -0.025em;
+}
+
+.hero-description {
+    max-width: 650px;
+    margin-top: 30px;
+    font-size: 1.15rem;
+    line-height: 1.8;
+    color: rgba(255, 255, 255, 0.82);
+}
+
+.hero-destinations {
+    margin-top: 28px;
+}
+
+.hero-destinations > span {
+    display: block;
+    margin-bottom: 12px;
+    font-size: 0.72rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    opacity: 0.65;
+}
+
+.destination-list {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px;
+}
+
+.destination {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--gold);
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+.flag {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    border-radius: 3px;
+    color: var(--gold);
+    font-size: 0.55rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+}
+
+.hero-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px;
+    margin-top: 38px;
+}
+
+.button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 52px;
+    padding: 0 25px;
+    border-radius: var(--radius-small);
+    font-weight: 700;
+    transition: transform var(--transition), background var(--transition);
+}
+
+.button:hover {
+    transform: translateY(-2px);
+}
+
+.button-primary {
+    color: var(--navy);
+    background: var(--gold);
+}
+
+.button-primary:hover {
+    background: var(--gold-light);
+}
+
+.button-secondary {
+    color: var(--white);
+    border: 1px solid rgba(255, 255, 255, 0.35);
+}
+
+.button-secondary:hover {
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.hero-note {
+    margin-top: 16px;
+    font-size: 0.85rem;
+    color: rgba(255, 255, 255, 0.65);
+}
+
+/* SECTION FOUNDATION */
+
+.journey-section,
+.services-section,
+.journeys-section,
+.about-section,
+.contact-section {
+    padding: 110px 0;
+}
+
+.section-heading {
+    max-width: 720px;
+    margin-bottom: 55px;
+}
+
+.section-heading h2 {
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: clamp(2.2rem, 4vw, 3.5rem);
+    line-height: 1.15;
+    color: var(--navy);
+}
+
+.section-heading p:not(.eyebrow) {
+    margin-top: 18px;
+    color: var(--text-muted);
+    font-size: 1.05rem;
+}
+
+/* JOURNEY SELECTOR */
+
+.journey-section {
+    background: var(--off-white);
+}
+
+.journey-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 16px;
+}
+
+.journey-card {
+    min-height: 240px;
+    padding: 28px 24px;
+    background: var(--white);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-medium);
+    transition: transform var(--transition), box-shadow var(--transition), border-color var(--transition);
+}
+
+.journey-card:hover {
+    transform: translateY(-6px);
+    border-color: rgba(201, 164, 92, 0.5);
+    box-shadow: var(--shadow-soft);
+}
+
+.journey-number {
+    display: block;
+    margin-bottom: 35px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    color: var(--gold);
+}
+
+.journey-card h3 {
+    margin-bottom: 12px;
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 1.4rem;
+    color: var(--navy);
+}
+
+.journey-card p {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+}
+
+/* SERVICES */
+
+.services-section {
+    background: #f8f7f3;
+}
+
+.services-section .section-heading {
+    max-width: 850px;
+    margin-bottom: 50px;
+}
+
+.services-grid {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 20px;
+    align-items: start;
+}
+
+.service-card {
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    height: auto;
+    background: var(--white);
+    border: 1px solid rgba(184, 139, 48, 0.25);
+    border-radius: 16px;
+    box-shadow: 0 8px 25px rgba(10, 30, 55, 0.06);
+    transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+}
+
+.service-card:hover {
+    transform: translateY(-7px);
+    border-color: rgba(184, 139, 48, 0.55);
+    box-shadow: 0 18px 40px rgba(10, 30, 55, 0.12);
+}
+
+.service-image {
+    position: relative;
+    height: 175px;
+    display: flex;
+    align-items: flex-end;
+    padding: 16px;
+    background-size: cover;
+    background-position: center top;
+    background-repeat: no-repeat;
+    overflow: hidden;
+}
+
+.service-image::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+        to top,
+        rgba(7, 27, 49, 0.55),
+        rgba(7, 27, 49, 0.05)
+    );
+}
+
+.service-image-label {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    background: #c99a3a;
+    color: var(--white);
+    font-size: 0.8rem;
+    font-weight: 700;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.18);
+}
+
+.service-image-education {
+    background-image: url("../images/service-images/education.jpg");
+}
+
+.service-image-careers {
+    background-image: url("../images/service-images/careers.jpg");
+}
+
+.service-image-travel {
+    background-image: url("../images/service-images/travel.jpg");
+}
+
+.service-image-business {
+    background-image: url("../images/service-images/business.jpg");
+}
+
+.service-image-mobility {
+    background-image: url("../images/service-images/mobility.jpg");
+}
+
+.service-card .service-number {
+    display: none;
+}
+
+.service-card h3 {
+    margin: 0 20px 12px;
+    color: #102b46;
+    font-size: 1.05rem;
+    line-height: 1.3;
+}
+
+.service-card > p {
+    margin: 0 20px 18px;
+    color: #596674;
+    font-size: 0.88rem;
+    line-height: 1.65;
+}
+
+.service-tags {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 7px;
+    margin: 0 20px 20px;
+}
+
+.service-tags span {
+    display: inline-flex;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: center;
+    width: auto;
+    padding: 6px 10px;
+    background: #faf9f5;
+    border: 1px solid #e7dfd0;
+    border-radius: 20px;
+    color: var(--text-muted);
+    font-size: 0.72rem;
+    line-height: 1.2;
+    white-space: nowrap;
+}
+
+.service-card .text-link {
+    margin: auto 20px 22px;
+    color: #b8892e;
+    font-size: 0.85rem;
+    font-weight: 700;
+    transition: color 0.2s ease;
+}
+
+.service-card .text-link:hover {
+    color: #102b46;
+}
+
+/* REAL JOURNEYS / SOCIAL PROOF */
+
+.journeys-section {
+    background: var(--white);
+}
+
+.journeys-section .section-heading {
+    max-width: 780px;
+}
+
+.journeys-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 22px;
+}
+
+.journey-story {
+    overflow: hidden;
+    background: var(--off-white);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-medium);
+    transition: transform var(--transition), box-shadow var(--transition);
+}
+
+.journey-story:hover {
+    transform: translateY(-5px);
+    box-shadow: var(--shadow-soft);
+}
+
+.journey-story-image {
+    width: 100%;
+    aspect-ratio: 16 / 10;
+    object-fit: cover;
+    background: var(--light-grey);
+}
+
+.journey-story-content {
+    padding: 24px;
+}
+
+.journey-story-status {
+    display: inline-block;
+    margin-bottom: 10px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--gold);
+}
+
+.journey-story h3 {
+    margin-bottom: 9px;
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 1.35rem;
+    color: var(--navy);
+}
+
+.journey-story p {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+}
+
+/* ABOUT */
+
+.about-section {
+    background: var(--off-white);
+}
+
+/* CONTACT */
+
+.contact-section {
+    background: var(--white);
+}
+
+/* FOOTER */
+
+.site-footer {
+    padding: 35px 0;
+    background: #041225;
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 0.82rem;
+}
+
+/* FLOATING WHATSAPP */
+
+.whatsapp-float {
+    position: fixed;
+    right: 24px;
+    bottom: 24px;
+    z-index: 1000;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 18px;
+    border-radius: 50px;
+    background: var(--white);
+    color: #12304a;
+    text-decoration: none;
+    font-size: 0.85rem;
+    font-weight: 600;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.18);
+    transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.whatsapp-float:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.22);
+}
+
+.whatsapp-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: #25D366;
+    color: var(--white);
+    font-size: 0.65rem;
+    font-weight: 700;
+}
+
+.whatsapp-text {
+    white-space: nowrap;
+}
+
+/* ============================================
+   RESPONSIVE DESIGN
+   ============================================ */
+
+/* TABLET */
+
+@media (max-width: 1100px) {
+
+    .services-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .journey-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .journeys-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .main-navigation {
+        gap: 20px;
+    }
+}
+
+/* MOBILE */
+
+@media (max-width: 760px) {
+
+    .header-container {
+        min-height: 72px;
+    }
+
+    .main-navigation {
+        display: none;
+    }
+
+    .mobile-menu-button {
+        display: block;
+    }
+
+    .hero {
+        min-height: 600px;
+    }
+
+    .hero-content {
+        padding: 80px 0;
+    }
+
+    .hero h1 {
+        font-size: clamp(2.8rem, 13vw, 4.5rem);
+    }
+
+    .hero-description {
+        font-size: 1rem;
+    }
+
+    .journey-section,
+    .services-section,
+    .journeys-section,
+    .about-section,
+    .contact-section {
+        padding: 80px 0;
+    }
+
+    .journey-grid {
+        grid-template-columns: 1fr;
+    }
+
+    /* Horizontal service browsing on mobile */
+
+    .services-grid {
+        display: flex;
+        overflow-x: auto;
+        overflow-y: hidden;
+        gap: 16px;
+        padding-bottom: 12px;
+        scroll-snap-type: x mandatory;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+    }
+
+    .services-grid::-webkit-scrollbar {
+        display: none;
+    }
+
+    .service-card {
+        flex: 0 0 84%;
+        scroll-snap-align: start;
+    }
+
+    .service-image {
+        height: 175px;
+    }
+
+    .journeys-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .section-heading {
+        margin-bottom: 40px;
+    }
+}
+
+/* SMALL MOBILE */
+
+@media (max-width: 480px) {
+
+    .container {
+        width: min(100% - 28px, var(--container-width));
+    }
+
+    .brand-name {
+        font-size: 1.35rem;
+    }
+
+    .hero-actions {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .button {
+        width: 100%;
+    }
+
+    .hero-destinations {
+        margin-top: 24px;
+    }
+
+    .destination-list {
+        gap: 9px;
+    }
+
+    .destination {
+        font-size: 0.8rem;
+    }
+
+    .flag {
+        width: 26px;
+        height: 18px;
+    }
+
+    .service-card {
+        flex-basis: 88%;
+    }
+
+    .service-image {
+        height: 175px;
+    }
+
+    .whatsapp-float {
+        right: 16px;
+        bottom: 16px;
+        padding: 10px 14px;
+    }
+
+    .whatsapp-icon {
+        width: 30px;
+        height: 30px;
+    }
+}
