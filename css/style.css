@@ -98,7 +98,6 @@ textarea {
     margin-inline: auto;
 }
 
-
 /* ============================================================
    04. HEADER
    ============================================================ */
@@ -1146,7 +1145,6 @@ textarea {
         0 20px 20px;
 }
 
-
 .service-tags span {
     display:
         inline-flex;
@@ -1257,6 +1255,104 @@ textarea {
             #FCD116 33.33% 66.66%,
             #006B3F 66.66% 100%
         );
+}
+/* ============================================================
+   JOURNEY STORY COUNTRY FLAGS
+   ============================================================ */
+
+.journey-country::before {
+
+    content: "";
+
+    display: inline-block;
+
+    width: 18px;
+    height: 12px;
+
+    margin-right: 7px;
+
+    border-radius: 2px;
+
+    border: 1px solid rgba(0, 0, 0, 0.08);
+
+    vertical-align: middle;
+
+    flex-shrink: 0;
+}
+
+
+/* Ghana */
+
+.journey-country-ghana::before {
+
+    background:
+        linear-gradient(
+            to bottom,
+            #CE1126 0 33.33%,
+            #FCD116 33.33% 66.66%,
+            #006B3F 66.66% 100%
+        );
+}
+
+
+/* Ukraine */
+
+.journey-country-ukraine::before {
+
+    background:
+        linear-gradient(
+            to bottom,
+            #0057B7 0 50%,
+            #FFD700 50% 100%
+        );
+}
+
+
+/* USA */
+
+.journey-country-usa::before {
+
+    background:
+        repeating-linear-gradient(
+            to bottom,
+            #B22234 0 1px,
+            #FFFFFF 1px 2px
+        );
+}
+
+
+/* Germany */
+
+.journey-country-germany::before {
+
+    background:
+        linear-gradient(
+            to bottom,
+            #000000 0 33.33%,
+            #DD0000 33.33% 66.66%,
+            #FFCE00 66.66% 100%
+        );
+}
+/* Canada */
+
+.journey-country-canada::before {
+
+    background:
+        linear-gradient(
+            to right,
+            #D52B1E 0 25%,
+            #FFFFFF 25% 75%,
+            #D52B1E 75% 100%
+        );
+}
+
+
+/* China */
+
+.journey-country-china::before {
+
+    background:
+        #DE2910;
 }
 /* ============================================================
    SERVICE LINKS
@@ -1412,15 +1508,32 @@ textarea {
         var(--brand-navy);
 }
 
-
 .journey-story p {
+
     font-size:
         0.9rem;
 
     color:
-        var(--text-muted);
+        #B8892E;
+
+    line-height:
+        1.65;
 }
 
+
+.journey-story-route {
+    margin-top:
+        16px;
+
+    font-size:
+        0.82rem;
+
+    font-weight:
+        600;
+
+    color:
+        var(--brand-navy);
+}
 
 /* ============================================================
    17. ABOUT
