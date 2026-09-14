@@ -2957,11 +2957,11 @@ hidden
                         <label class="service-option">
 
                             <input
-                                type="checkbox"
-                                name="services"
-                                value="general"
-                                data-service="general"
-                            >
+    type="checkbox"
+    name="services"
+    value="unsure"
+    data-service="unsure"
+>
 
 
                             <span class="service-option-content">
@@ -3244,7 +3244,7 @@ hidden
                             <input
                                 type="text"
                                 id="first-choice-programme"
-                                name="first_choice_programme"
+                                name="first_programme"
                                 placeholder="Your preferred programme"
                             >
 
@@ -3264,7 +3264,7 @@ hidden
                             <input
                                 type="text"
                                 id="second-choice-programme"
-                                name="second_choice_programme"
+                                name="second_programme"
                                 placeholder="Optional alternative"
                             >
 
@@ -3347,7 +3347,7 @@ hidden
                             <input
                                 type="text"
                                 id="highest-qualification"
-                                name="highest_qualification"
+                                name="professional_qualification"
                                 placeholder="Your highest qualification"
                             >
 
@@ -3398,7 +3398,7 @@ hidden
                             <input
                                 type="text"
                                 id="career-opportunity"
-                                name="career_opportunity"
+                                name="career_interest"
                                 placeholder="Tell us about the opportunity you are seeking"
                             >
 
@@ -3498,7 +3498,7 @@ hidden
                             <input
                                 type="number"
                                 id="number-of-travellers"
-                                name="number_of_travellers"
+                                name="travellers"
                                 min="1"
                                 placeholder="1"
                             >
@@ -3520,7 +3520,7 @@ hidden
 
                                     <input
                                         type="checkbox"
-                                        name="travel_support"
+                                        name="travel_services"
                                         value="flights"
                                     >
 
@@ -3533,7 +3533,7 @@ hidden
 
                                     <input
                                         type="checkbox"
-                                        name="travel_support"
+                                        name="travel_services"
                                         value="accommodation"
                                     >
 
@@ -3546,7 +3546,7 @@ hidden
 
                                     <input
                                         type="checkbox"
-                                        name="travel_support"
+                                        name="travel_services"
                                         value="itinerary"
                                     >
 
@@ -3559,7 +3559,7 @@ hidden
 
                                     <input
                                         type="checkbox"
-                                        name="travel_support"
+                                        name="travel_services"
                                         value="insurance"
                                     >
 
@@ -3572,7 +3572,7 @@ hidden
 
                                     <input
                                         type="checkbox"
-                                        name="travel_support"
+                                        name="travel_services"
                                         value="complete"
                                     >
 
@@ -3645,7 +3645,7 @@ hidden
                             <input
                                 type="text"
                                 id="business-product"
-                                name="business_product"
+                                name="product_category"
                                 placeholder="What product are you sourcing?"
                             >
 
@@ -3665,7 +3665,7 @@ hidden
                             <input
                                 type="text"
                                 id="business-quantity"
-                                name="business_quantity"
+                                name="estimated_quantity"
                                 placeholder="Estimated quantity"
                             >
 
@@ -3682,7 +3682,7 @@ hidden
                             <input
                                 type="text"
                                 id="business-location"
-                                name="business_location"
+                                name="business_source"
                                 placeholder="e.g. China → Ghana"
                             >
 
@@ -3703,7 +3703,7 @@ hidden
 
                                     <input
                                         type="checkbox"
-                                        name="business_support"
+                                        name="business_services"
                                         value="product-sourcing"
                                     >
 
@@ -3716,7 +3716,7 @@ hidden
 
                                     <input
                                         type="checkbox"
-                                        name="business_support"
+                                        name="business_services"
                                         value="supplier-connection"
                                     >
 
@@ -3729,7 +3729,7 @@ hidden
 
                                     <input
                                         type="checkbox"
-                                        name="business_support"
+                                        name="business_services"
                                         value="factory-visit"
                                     >
 
@@ -3742,7 +3742,7 @@ hidden
 
                                     <input
                                         type="checkbox"
-                                        name="business_support"
+                                        name="business_services"
                                         value="canton-fair"
                                     >
 
@@ -3755,7 +3755,7 @@ hidden
 
                                     <input
                                         type="checkbox"
-                                        name="business_support"
+                                        name="business_services"
                                         value="shipping"
                                     >
 
@@ -3768,7 +3768,7 @@ hidden
 
                                     <input
                                         type="checkbox"
-                                        name="business_support"
+                                        name="business_services"
                                         value="trade-support"
                                     >
 
@@ -3858,7 +3858,7 @@ hidden
                             <input
                                 type="text"
                                 id="expected-arrival"
-                                name="expected_arrival"
+                                name="arrival_date"
                                 placeholder="Expected arrival date"
                             >
 
@@ -3879,7 +3879,7 @@ hidden
 
                                     <input
                                         type="checkbox"
-                                        name="mobility_support"
+                                        name="mobility_services"
                                         value="airport-reception"
                                     >
 
@@ -3892,7 +3892,7 @@ hidden
 
                                     <input
                                         type="checkbox"
-                                        name="mobility_support"
+                                        name="mobility_services"
                                         value="accommodation"
                                     >
 
@@ -3905,7 +3905,7 @@ hidden
 
                                     <input
                                         type="checkbox"
-                                        name="mobility_support"
+                                        name="mobility_services"
                                         value="arrival-support"
                                     >
 
@@ -3918,7 +3918,7 @@ hidden
 
                                     <input
                                         type="checkbox"
-                                        name="mobility_support"
+                                        name="mobility_services"
                                         value="destination-orientation"
                                     >
 
@@ -3931,7 +3931,7 @@ hidden
 
                                     <input
                                         type="checkbox"
-                                        name="mobility_support"
+                                        name="mobility_services"
                                         value="settlement-support"
                                     >
 
@@ -3956,7 +3956,7 @@ hidden
 
                 <div
                     class="dynamic-service-panel"
-                    data-service-panel="general"
+                    data-service-panel="unsure"
                     hidden
                 >
 
@@ -3983,7 +3983,7 @@ hidden
 
                         <textarea
                             id="general-enquiry"
-                            name="general_enquiry"
+                            name="unsure_request"
                             rows="5"
                             placeholder="Tell us about your plans, questions or goals..."
                         ></textarea>
@@ -4582,9 +4582,19 @@ hidden
 <!-- =========================================================
      JAVASCRIPT
      ========================================================= -->
+<script
+    src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"
+></script>
 
-<script src="js/main.js"></script>
+<script
+    src="js/supabase-config.js"
+></script>
 
+<script
+    src="js/main.js"
+></script>
+     <script></script>
+    
 </body>
 
 </html>

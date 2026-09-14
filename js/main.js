@@ -187,7 +187,9 @@ document.addEventListener("DOMContentLoaded", () => {
                         );
 
                     if (unsureCheckbox) {
+
                         unsureCheckbox.checked = false;
+
                     }
 
                 }
@@ -200,144 +202,149 @@ document.addEventListener("DOMContentLoaded", () => {
 
     });
 
-/* =========================================================
-   ENHANCED SERVICE EXPERIENCE
-   PHASE 2C
-   ========================================================= */
-
-const enhancedServiceLinks =
-    document.querySelectorAll(
-        "[data-enhanced-service]"
-    );
-
-const enhancedServicePanels =
-    document.querySelectorAll(
-        "[data-service-experience]"
-    );
 
 
-/*
- * Display one enhanced service panel
- * and hide all other service panels.
- */
+    /* =========================================================
+       ENHANCED SERVICE EXPERIENCE
+       PHASE 2C
+       ========================================================= */
 
-function showEnhancedService(service) {
+    const enhancedServiceLinks =
+        document.querySelectorAll(
+            "[data-enhanced-service]"
+        );
 
-    if (!service) {
-        return;
-    }
-
-
-    let targetPanel = null;
-
-
-    enhancedServicePanels.forEach(panel => {
-
-        const panelService =
-            panel.dataset.serviceExperience;
+    const enhancedServicePanels =
+        document.querySelectorAll(
+            "[data-service-experience]"
+        );
 
 
-        const isTarget =
-            panelService === service;
+    /*
+     * Display one enhanced service panel
+     * and hide all other service panels.
+     */
+
+    function showEnhancedService(service) {
+
+        if (!service) {
+            return;
+        }
 
 
-        if (isTarget) {
+        let targetPanel = null;
 
-            targetPanel = panel;
 
-            panel.hidden = false;
+        enhancedServicePanels.forEach(panel => {
 
-            requestAnimationFrame(() => {
+            const panelService =
+                panel.dataset.serviceExperience;
 
-                panel.classList.add(
+
+            const isTarget =
+                panelService === service;
+
+
+            if (isTarget) {
+
+                targetPanel = panel;
+
+                panel.hidden = false;
+
+                requestAnimationFrame(() => {
+
+                    panel.classList.add(
+                        "is-active"
+                    );
+
+                });
+
+            } else {
+
+                panel.classList.remove(
                     "is-active"
                 );
 
-            });
+                panel.hidden = true;
 
-        } else {
+            }
 
-            panel.classList.remove(
-                "is-active"
-            );
-
-            panel.hidden = true;
-
-        }
-
-    });
-
-
-    /*
-     * Stop if no matching service panel exists.
-     */
-
-    if (!targetPanel) {
-        return;
-    }
-
-
-    /*
-     * Update the URL hash without
-     * causing a browser page reload.
-     */
-
-    if (
-        window.history &&
-        window.history.replaceState
-    ) {
-
-        window.history.replaceState(
-            null,
-            "",
-            "#service-experience"
-        );
-
-    }
-
-
-    /*
-     * Give the browser a moment to render
-     * the panel before scrolling to it.
-     */
-
-    requestAnimationFrame(() => {
-
-        targetPanel.scrollIntoView({
-            behavior: "smooth",
-            block: "start"
         });
 
-    });
 
-}
+        /*
+         * Stop if no matching service panel exists.
+         */
 
-
-/*
- * Homepage service-card interactions.
- */
-
-enhancedServiceLinks.forEach(link => {
-
-    link.addEventListener(
-        "click",
-        event => {
-
-            event.preventDefault();
+        if (!targetPanel) {
+            return;
+        }
 
 
-            const service =
-                link.dataset.enhancedService;
+        /*
+         * Update the URL hash without
+         * causing a browser page reload.
+         */
 
+        if (
+            window.history &&
+            window.history.replaceState
+        ) {
 
-            showEnhancedService(
-                service
+            window.history.replaceState(
+                null,
+                "",
+                "#service-experience"
             );
 
         }
-    );
 
-});
+
+        /*
+         * Give the browser a moment to render
+         * the panel before scrolling to it.
+         */
+
+        requestAnimationFrame(() => {
+
+            targetPanel.scrollIntoView({
+                behavior: "smooth",
+                block: "start"
+            });
+
+        });
+
+    }
+
+
+
+    /*
+     * Homepage service-card interactions.
+     */
+
+    enhancedServiceLinks.forEach(link => {
+
+        link.addEventListener(
+            "click",
+            event => {
+
+                event.preventDefault();
+
+
+                const service =
+                    link.dataset.enhancedService;
+
+
+                showEnhancedService(
+                    service
+                );
+
+            }
+        );
+
+    });
+
+
 
     /* =========================================================
        SERVICE CARD → ENQUIRY FORM
@@ -375,6 +382,7 @@ enhancedServiceLinks.forEach(link => {
                 enquiryForm.querySelector(
                     'input[name="services"][value="unsure"]'
                 );
+
 
             if (unsureCheckbox) {
                 unsureCheckbox.checked = false;
@@ -534,6 +542,7 @@ enhancedServiceLinks.forEach(link => {
 
 
             return false;
+
         }
 
 
@@ -691,103 +700,264 @@ enhancedServiceLinks.forEach(link => {
     }
 
 
-
     /* =========================================================
-       FORM SUBMISSION
-       ========================================================= */
+   SUPABASE SUBMISSION
+   ========================================================= */
 
-    enquiryForm.addEventListener(
-        "submit",
-        event => {
+async function submitEnquiryToSupabase(
+    enquiryData
+) {
 
-            event.preventDefault();
+    if (
+        typeof lordblessSupabase ===
+        "undefined"
+    ) {
 
+        throw new Error(
+            "Supabase is not configured."
+        );
 
-            const basicFieldsValid =
-                validateBasicFields();
-
-
-            const servicesValid =
-                validateServices();
-
-
-            const consentValid =
-                validateConsent();
+    }
 
 
-            if (
-                !basicFieldsValid ||
-                !servicesValid ||
-                !consentValid
-            ) {
-
-                /*
-                 * Move the user to the first visible
-                 * validation problem.
-                 */
-
-                const firstError =
-                    enquiryForm.querySelector(
-                        ".field-error, .selection-error"
-                    );
+    const {
+        data,
+        error
+    } =
+        await lordblessSupabase.rpc(
+            "submit_initial_enquiry",
+            {
+                p_data: enquiryData
+            }
+        );
 
 
-                if (firstError) {
+    if (error) {
 
-                    firstError.scrollIntoView({
-                        behavior: "smooth",
-                        block: "center"
-                    });
+        console.error(
+            "LORDBLESS SUPABASE ERROR:",
+            error
+        );
 
-                }
+        throw new Error(
+            error.message ||
+            "Unable to submit enquiry."
+        );
+
+    }
 
 
-                return;
+    if (
+        !data ||
+        data.success !== true
+    ) {
+
+        throw new Error(
+            "The enquiry could not be completed."
+        );
+
+    }
+
+
+    console.log(
+        "LORDBLESS ENQUIRY SUBMITTED:",
+        data
+    );
+
+
+    return data;
+
+}
+
+
+
+/* =========================================================
+   FORM SUBMISSION
+   ========================================================= */
+
+enquiryForm.addEventListener(
+    "submit",
+    async event => {
+
+        event.preventDefault();
+
+
+        const basicFieldsValid =
+            validateBasicFields();
+
+
+        const servicesValid =
+            validateServices();
+
+
+        const consentValid =
+            validateConsent();
+
+
+        if (
+            !basicFieldsValid ||
+            !servicesValid ||
+            !consentValid
+        ) {
+
+            const firstError =
+                enquiryForm.querySelector(
+                    ".field-error, .selection-error"
+                );
+
+
+            if (firstError) {
+
+                firstError.scrollIntoView({
+                    behavior: "smooth",
+                    block: "center"
+                });
 
             }
 
 
-            /*
-             * At this stage the form is valid.
-             *
-             * Backend submission will be connected later.
-             *
-             * For now we generate a structured enquiry
-             * object so the frontend architecture is ready.
-             */
-
-            const formData =
-                new FormData(
-                    enquiryForm
-                );
-
-
-            const enquiryData =
-                buildEnquiryData(
-                    formData
-                );
-
-
-            /*
-             * Temporary development behaviour.
-             *
-             * We do NOT send the information anywhere yet.
-             */
-
-            console.log(
-                "LORDBLESS ENQUIRY:",
-                enquiryData
-            );
-
-
-            showSubmissionMessage(
-                enquiryData
-            );
+            return;
 
         }
-    );
 
 
+        /* =================================================
+           BUILD STRUCTURED ENQUIRY
+           ================================================= */
+
+        const formData =
+            new FormData(
+                enquiryForm
+            );
+
+
+        const enquiryData =
+            buildEnquiryData(
+                formData
+            );
+
+
+        /* =================================================
+           SUBMIT BUTTON STATE
+           ================================================= */
+
+        const submitButton =
+            enquiryForm.querySelector(
+                'button[type="submit"]'
+            );
+
+
+        const originalButtonText =
+            submitButton
+                ? submitButton.textContent
+                : "";
+
+
+        if (submitButton) {
+
+            submitButton.disabled =
+                true;
+
+            submitButton.textContent =
+                "Sending...";
+
+        }
+
+
+        /* =================================================
+           REMOVE OLD SUBMISSION ERROR
+           ================================================= */
+
+        const oldError =
+            enquiryForm.querySelector(
+                ".submission-error"
+            );
+
+
+        if (oldError) {
+
+            oldError.remove();
+
+        }
+
+
+        try {
+
+            /* =============================================
+               SEND TO SUPABASE
+               ============================================= */
+
+            const result =
+                await submitEnquiryToSupabase(
+                    enquiryData
+                );
+
+
+            /* =============================================
+               SUCCESS
+               ============================================= */
+
+            showSubmissionMessage(
+                enquiryData,
+                result
+            );
+
+
+        } catch (error) {
+
+            console.error(
+                "LORDBLESS ENQUIRY SUBMISSION FAILED:",
+                error
+            );
+
+
+            const errorMessage =
+                document.createElement(
+                    "p"
+                );
+
+
+            errorMessage.className =
+                "submission-error";
+
+
+            errorMessage.setAttribute(
+                "role",
+                "alert"
+            );
+
+
+            errorMessage.textContent =
+                "We could not submit your enquiry right now. Please try again or contact us on WhatsApp.";
+
+
+            enquiryForm.prepend(
+                errorMessage
+            );
+
+
+            errorMessage.scrollIntoView({
+                behavior: "smooth",
+                block: "center"
+            });
+
+
+        } finally {
+
+            if (submitButton) {
+
+                submitButton.disabled =
+                    false;
+
+                submitButton.textContent =
+                    originalButtonText;
+
+            }
+
+        }
+
+        }
+);
 
     /* =========================================================
        BUILD STRUCTURED ENQUIRY DATA
@@ -831,10 +1001,27 @@ enhancedServiceLinks.forEach(link => {
                 selectedServices,
 
 
+            journey: {
+
+                destination:
+                    formData.get("destination") || "",
+
+                timeframe:
+                    formData.get("timeframe") || "",
+
+                additionalInformation:
+                    formData.get("additional_information") || "",
+
+                preferredContact:
+                    formData.get("preferred_contact") || ""
+
+            },
+
+
             education: {
 
                 destination:
-                    formData.get("education_destination") || "",
+                    formData.get("destination") || "",
 
                 studyArea:
                     formData.get("study_area") || "",
@@ -848,8 +1035,8 @@ enhancedServiceLinks.forEach(link => {
                 secondProgramme:
                     formData.get("second_programme") || "",
 
-                timeframe:
-                    formData.get("education_timeframe") || ""
+                preferredIntake:
+                    formData.get("preferred_intake") || ""
 
             },
 
@@ -995,11 +1182,10 @@ enhancedServiceLinks.forEach(link => {
     /* =========================================================
        SUBMISSION CONFIRMATION
        ========================================================= */
-
     function showSubmissionMessage(
-        enquiryData
-    ) {
-
+    enquiryData,
+    result
+) {
         const formContainer =
             enquiryForm.parentElement;
 
@@ -1038,10 +1224,10 @@ enhancedServiceLinks.forEach(link => {
                 "BUSINESS & SOURCING",
 
             mobility:
-                "GLOBAL MOBILITY",
+                "LORDBLESS GOLD SERVICES",
 
             unsure:
-                "GENERAL ENQUIRY"
+                "NOT SURE YET"
 
         };
 
@@ -1077,20 +1263,40 @@ enhancedServiceLinks.forEach(link => {
                 JOURNEY STARTED
             </p>
 
+
             <h2>
                 Thank You, ${escapeHtml(firstName)}.
             </h2>
 
             <p>
-                Your enquiry has been prepared
-                for the LORDBLESS CONSULTANCY team.
-            </p>
+    Your enquiry has been received by
+    the LORDBLESS CONSULTANCY team.
+</p>
+
+
+<div class="enquiry-success-reference">
+
+    <strong>
+        Enquiry Reference
+    </strong>
+
+    <p>
+        ${escapeHtml(
+            result &&
+            result.reference
+                ? result.reference
+                : "LBC-PENDING"
+        )}
+    </p>
+
+</div>
 
             <div class="enquiry-success-services">
 
                 <strong>
                     Your selected pathway
                 </strong>
+
 
                 <p>
                     ${escapeHtml(
@@ -1100,11 +1306,13 @@ enhancedServiceLinks.forEach(link => {
 
             </div>
 
+
             <div class="enquiry-next-steps">
 
                 <h3>
                     What happens next?
                 </h3>
+
 
                 <ol>
 
@@ -1126,6 +1334,7 @@ enhancedServiceLinks.forEach(link => {
 
             </div>
 
+
             <div class="enquiry-success-actions">
 
                 <a
@@ -1136,6 +1345,7 @@ enhancedServiceLinks.forEach(link => {
                 >
                     Chat With Us on WhatsApp
                 </a>
+
 
                 <button
                     type="button"
@@ -1324,6 +1534,7 @@ enhancedServiceLinks.forEach(link => {
         });
 
     }
+
 
 
     /*
