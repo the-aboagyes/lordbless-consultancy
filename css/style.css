@@ -3121,8 +3121,6 @@ textarea {
     }
 
 }
-
-
 /*
  * Respect users who prefer reduced motion.
  */
@@ -3133,4 +3131,92 @@ textarea {
         animation: none;
     }
 
+}
+/* =========================================================
+   LORDBLESS FLOATING WHATSAPP
+   ========================================================= */
+
+.lordbless-floating-whatsapp {
+    position: fixed;
+    right: 24px;
+    bottom: 24px;
+    z-index: 9999;
+
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+
+    padding: 13px 18px;
+
+    background: #25D366;
+    color: #ffffff;
+
+    border-radius: 999px;
+
+    text-decoration: none;
+
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 700;
+
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+
+    transition:
+        transform 0.2s ease,
+        box-shadow 0.2s ease;
+}
+
+.lordbless-floating-whatsapp:hover {
+    color: #ffffff;
+    text-decoration: none;
+
+    transform: translateY(-3px);
+
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.24);
+}
+
+.lordbless-whatsapp-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    width: 28px;
+    height: 28px;
+
+    flex-shrink: 0;
+}
+
+.lordbless-whatsapp-label {
+    white-space: nowrap;
+}
+
+
+/* =========================================================
+   MOBILE
+   ========================================================= */
+
+@media (max-width: 640px) {
+
+    .lordbless-floating-whatsapp {
+        right: 16px;
+        bottom: 16px;
+
+        width: 54px;
+        height: 54px;
+
+        padding: 0;
+
+        justify-content: center;
+
+        border-radius: 50%;
+    }
+
+    .lordbless-whatsapp-label {
+        display: none;
+    }
+
+    .lordbless-whatsapp-icon {
+        width: 30px;
+        height: 30px;
+    }
 }

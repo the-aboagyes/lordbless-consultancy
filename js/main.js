@@ -887,21 +887,42 @@ enquiryForm.addEventListener(
                SEND TO SUPABASE
                ============================================= */
 
+            
             const result =
                 await submitEnquiryToSupabase(
                     enquiryData
-                );
+    );
 
 
-            /* =============================================
-               SUCCESS
-               ============================================= */
+/* =============================================
+   SEND EMAIL NOTIFICATIONS
+   ============================================= */
 
-            showSubmissionMessage(
-                enquiryData,
-                result
-            );
+try {
 
+    await sendEnquiryEmail(
+        enquiryData,
+        result.reference
+    );
+
+} catch (emailError) {
+
+    console.error(
+        "LORDBLESS EMAIL NOTIFICATION FAILED:",
+        emailError
+    );
+
+}
+
+
+/* =============================================
+   SUCCESS
+   ============================================= */
+
+showSubmissionMessage(
+    enquiryData,
+    result
+);
 
         } catch (error) {
 
@@ -958,7 +979,79 @@ enquiryForm.addEventListener(
 
         }
 );
+/* =========================================================
+   SEND ENQUIRY EMAIL
+   ========================================================= */
 
+async function sendEnquiryEmail(
+    enquiryData,
+    reference
+) {
+
+    if (
+        typeof lordblessSupabase ===
+        "undefined"
+    ) {
+
+        throw new Error(
+            "Supabase is not configured."
+        );
+
+    }
+
+
+    const {
+        data,
+        error
+    } =
+        await lordblessSupabase.functions.invoke(
+            "send-enquiry-email",
+            {
+                body: {
+                    enquiryData,
+                    reference
+                }
+            }
+        );
+
+
+    if (error) {
+
+        console.error(
+            "LORDBLESS EMAIL FUNCTION ERROR:",
+            error
+        );
+
+        throw new Error(
+            error.message ||
+            "Unable to send enquiry emails."
+        );
+
+    }
+
+
+    if (
+        !data ||
+        data.success !== true
+    ) {
+
+        throw new Error(
+            data?.error ||
+            "The enquiry emails could not be sent."
+        );
+
+    }
+
+
+    console.log(
+        "LORDBLESS ENQUIRY EMAILS SENT:",
+        data
+    );
+
+
+    return data;
+
+}
     /* =========================================================
        BUILD STRUCTURED ENQUIRY DATA
        ========================================================= */
