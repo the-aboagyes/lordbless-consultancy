@@ -1,0 +1,701 @@
+/* ============================================================
+   LORDBLESS CLIENT FINANCE
+   ============================================================
+
+   Scoped styles for:
+   client/components/clientFinance.js
+
+   IMPORTANT:
+   - No global selectors
+   - No body/html overrides
+   - No existing portal styles modified
+   ============================================================ */
+
+
+/* ============================================================
+   MAIN CONTAINER
+   ============================================================ */
+
+.lbc-client-finance {
+    width: 100%;
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 8px 0 48px;
+    box-sizing: border-box;
+}
+
+
+/* ============================================================
+   HEADER
+   ============================================================ */
+
+.lbc-client-finance-header {
+    margin-bottom: 28px;
+}
+
+.lbc-client-finance-eyebrow {
+    margin: 0 0 7px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    opacity: 0.62;
+}
+
+.lbc-client-finance-header h2 {
+    margin: 0;
+    font-size: 30px;
+    line-height: 1.2;
+    font-weight: 700;
+}
+
+.lbc-client-finance-header p:last-child {
+    margin: 9px 0 0;
+    max-width: 680px;
+    font-size: 14px;
+    line-height: 1.65;
+    opacity: 0.68;
+}
+
+
+/* ============================================================
+   OUTSTANDING BALANCE CARD
+   ============================================================ */
+
+.lbc-client-finance-balance-card {
+    width: 100%;
+    box-sizing: border-box;
+    margin-bottom: 34px;
+    padding: 28px 30px;
+    border-radius: 18px;
+    border: 1px solid rgba(15, 23, 42, 0.08);
+    background: #ffffff;
+    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
+}
+
+.lbc-client-finance-balance-heading {
+    margin-bottom: 20px;
+}
+
+.lbc-client-finance-balance-heading span {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    opacity: 0.58;
+}
+
+.lbc-client-finance-balance-values {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.lbc-client-finance-balance-line {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+}
+
+.lbc-client-finance-balance-line span {
+    font-size: 14px;
+    font-weight: 600;
+    opacity: 0.66;
+}
+
+.lbc-client-finance-balance-line strong {
+    font-size: 30px;
+    line-height: 1.15;
+    font-weight: 750;
+    letter-spacing: -0.02em;
+}
+
+.lbc-client-finance-empty-balance {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.lbc-client-finance-empty-balance strong {
+    font-size: 17px;
+    font-weight: 700;
+}
+
+.lbc-client-finance-empty-balance span {
+    font-size: 13px;
+    line-height: 1.5;
+    opacity: 0.62;
+}
+
+
+/* ============================================================
+   SECTION
+   ============================================================ */
+
+.lbc-client-finance-section {
+    margin-bottom: 34px;
+}
+
+.lbc-client-finance-section-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    margin-bottom: 15px;
+}
+
+.lbc-client-finance-section-heading > div {
+    min-width: 0;
+}
+
+.lbc-client-finance-section-heading p {
+    margin: 0 0 5px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    opacity: 0.52;
+}
+
+.lbc-client-finance-section-heading h3 {
+    margin: 0;
+    font-size: 19px;
+    line-height: 1.3;
+    font-weight: 700;
+}
+
+.lbc-client-finance-section-heading > span {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 28px;
+    height: 28px;
+    padding: 0 9px;
+    box-sizing: border-box;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 700;
+    background: rgba(15, 23, 42, 0.06);
+}
+
+
+/* ============================================================
+   PAYMENT REQUEST LIST
+   ============================================================ */
+
+.lbc-client-finance-request-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.lbc-client-finance-request {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+    padding: 21px 23px;
+    box-sizing: border-box;
+    border: 1px solid rgba(15, 23, 42, 0.08);
+    border-radius: 15px;
+    background: #ffffff;
+    transition:
+        box-shadow 0.18s ease,
+        transform 0.18s ease,
+        border-color 0.18s ease;
+}
+
+.lbc-client-finance-request:hover {
+    transform: translateY(-1px);
+    border-color: rgba(15, 23, 42, 0.13);
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.05);
+}
+
+.lbc-client-finance-request-main {
+    min-width: 0;
+}
+
+.lbc-client-finance-request-heading {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+}
+
+.lbc-client-finance-request-status {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 8px;
+    border-radius: 999px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    background: rgba(15, 23, 42, 0.06);
+}
+
+.lbc-client-finance-request h4 {
+    margin: 0;
+    font-size: 16px;
+    line-height: 1.4;
+    font-weight: 700;
+}
+
+.lbc-client-finance-request-reference {
+    margin-top: 7px;
+    font-size: 12px;
+    opacity: 0.58;
+}
+
+.lbc-client-finance-request-due {
+    margin-top: 4px;
+    font-size: 12px;
+    opacity: 0.58;
+}
+
+.lbc-client-finance-request-amount {
+    flex: 0 0 auto;
+    min-width: 145px;
+    text-align: right;
+}
+
+.lbc-client-finance-request-amount span {
+    display: block;
+    margin-bottom: 5px;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    opacity: 0.5;
+}
+
+.lbc-client-finance-request-amount strong {
+    display: block;
+    font-size: 19px;
+    line-height: 1.25;
+    font-weight: 750;
+}
+
+
+/* ============================================================
+   EMPTY STATE
+   ============================================================ */
+
+.lbc-client-finance-empty-state {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 24px;
+    border: 1px dashed rgba(15, 23, 42, 0.14);
+    border-radius: 15px;
+    background: rgba(15, 23, 42, 0.015);
+}
+
+.lbc-client-finance-empty-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    font-size: 15px;
+    font-weight: 700;
+    background: rgba(15, 23, 42, 0.07);
+}
+
+.lbc-client-finance-empty-state strong {
+    display: block;
+    margin-bottom: 4px;
+    font-size: 14px;
+    font-weight: 700;
+}
+
+.lbc-client-finance-empty-state p {
+    margin: 0;
+    font-size: 12px;
+    line-height: 1.55;
+    opacity: 0.6;
+}
+
+
+/* ============================================================
+   PAYMENT HISTORY TOGGLE
+   ============================================================ */
+
+.lbc-client-finance-history-section {
+    margin-top: 10px;
+}
+
+.lbc-client-finance-history-toggle {
+    width: 100%;
+    min-height: 58px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    padding: 0 20px;
+    box-sizing: border-box;
+    border: 1px solid rgba(15, 23, 42, 0.09);
+    border-radius: 14px;
+    background: #ffffff;
+    font: inherit;
+    font-size: 14px;
+    font-weight: 700;
+    text-align: left;
+    cursor: pointer;
+    transition:
+        background 0.18s ease,
+        border-color 0.18s ease,
+        box-shadow 0.18s ease;
+}
+
+.lbc-client-finance-history-toggle:hover {
+    border-color: rgba(15, 23, 42, 0.15);
+    box-shadow: 0 6px 18px rgba(15, 23, 42, 0.04);
+}
+
+.lbc-client-finance-history-toggle-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 25px;
+    height: 25px;
+    border-radius: 50%;
+    font-size: 17px;
+    line-height: 1;
+    background: rgba(15, 23, 42, 0.06);
+}
+
+
+/* ============================================================
+   HISTORY PANEL
+   ============================================================ */
+
+.lbc-client-finance-history-panel {
+    margin-top: 14px;
+    padding: 25px;
+    border: 1px solid rgba(15, 23, 42, 0.08);
+    border-radius: 16px;
+    background: #ffffff;
+}
+
+.lbc-client-finance-history-panel[hidden] {
+    display: none;
+}
+
+
+/* ============================================================
+   HISTORY TOTALS
+   ============================================================ */
+
+.lbc-client-finance-history-summary {
+    display: grid;
+    grid-template-columns: repeat(
+        auto-fit,
+        minmax(180px, 1fr)
+    );
+    gap: 10px;
+    margin-bottom: 18px;
+}
+
+.lbc-client-finance-history-total {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 15px 16px;
+    border-radius: 12px;
+    background: rgba(15, 23, 42, 0.035);
+}
+
+.lbc-client-finance-history-total span {
+    font-size: 10px;
+    font-weight: 600;
+    opacity: 0.58;
+}
+
+.lbc-client-finance-history-total strong {
+    font-size: 18px;
+    font-weight: 750;
+}
+
+
+/* ============================================================
+   PAYMENT HISTORY LIST
+   ============================================================ */
+
+.lbc-client-finance-payment-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    margin-bottom: 32px;
+}
+
+.lbc-client-finance-payment {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    padding: 16px 0;
+    border-bottom: 1px solid rgba(15, 23, 42, 0.07);
+}
+
+.lbc-client-finance-payment:first-child {
+    padding-top: 0;
+}
+
+.lbc-client-finance-payment:last-child {
+    border-bottom: 0;
+}
+
+.lbc-client-finance-payment > div {
+    min-width: 0;
+}
+
+.lbc-client-finance-payment > div strong {
+    display: block;
+    margin-bottom: 4px;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.lbc-client-finance-payment > div span {
+    display: block;
+    font-size: 11px;
+    opacity: 0.55;
+}
+
+.lbc-client-finance-payment > strong {
+    flex: 0 0 auto;
+    font-size: 14px;
+    font-weight: 750;
+}
+
+
+/* ============================================================
+   HISTORY EMPTY STATE
+   ============================================================ */
+
+.lbc-client-finance-history-empty {
+    padding: 20px;
+    border-radius: 12px;
+    background: rgba(15, 23, 42, 0.035);
+}
+
+.lbc-client-finance-history-empty strong {
+    display: block;
+    margin-bottom: 5px;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.lbc-client-finance-history-empty p {
+    margin: 0;
+    font-size: 12px;
+    line-height: 1.55;
+    opacity: 0.6;
+}
+
+
+/* ============================================================
+   RECEIPTS
+   ============================================================ */
+
+.lbc-client-finance-receipts-section {
+    padding-top: 25px;
+    border-top: 1px solid rgba(15, 23, 42, 0.08);
+}
+
+.lbc-client-finance-receipts {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.lbc-client-finance-receipt {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    padding: 17px 18px;
+    border: 1px solid rgba(15, 23, 42, 0.07);
+    border-radius: 12px;
+    background: rgba(15, 23, 42, 0.018);
+}
+
+.lbc-client-finance-receipt > div:first-child {
+    min-width: 0;
+}
+
+.lbc-client-finance-receipt > div:first-child > span {
+    display: block;
+    margin-bottom: 4px;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    opacity: 0.5;
+}
+
+.lbc-client-finance-receipt > div:first-child > strong {
+    display: block;
+    margin-bottom: 3px;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.lbc-client-finance-receipt > div:first-child > small {
+    display: block;
+    font-size: 11px;
+    line-height: 1.4;
+    opacity: 0.58;
+}
+
+.lbc-client-finance-receipt-meta {
+    flex: 0 0 auto;
+    text-align: right;
+}
+
+.lbc-client-finance-receipt-meta strong {
+    display: block;
+    margin-bottom: 4px;
+    font-size: 14px;
+    font-weight: 750;
+}
+
+.lbc-client-finance-receipt-meta span {
+    display: block;
+    font-size: 10px;
+    opacity: 0.55;
+}
+
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+
+@media (max-width: 760px) {
+
+    .lbc-client-finance {
+        padding-bottom: 32px;
+    }
+
+
+    .lbc-client-finance-header h2 {
+        font-size: 25px;
+    }
+
+
+    .lbc-client-finance-balance-card {
+        padding: 23px 20px;
+        border-radius: 15px;
+    }
+
+
+    .lbc-client-finance-balance-line strong {
+        font-size: 25px;
+    }
+
+
+    .lbc-client-finance-request {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 17px;
+        padding: 19px;
+    }
+
+
+    .lbc-client-finance-request-amount {
+        width: 100%;
+        min-width: 0;
+        text-align: left;
+    }
+
+
+    .lbc-client-finance-request-amount span {
+        margin-bottom: 3px;
+    }
+
+
+    .lbc-client-finance-history-panel {
+        padding: 20px;
+    }
+
+
+    .lbc-client-finance-receipt {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+
+    .lbc-client-finance-receipt-meta {
+        text-align: left;
+    }
+
+}
+
+
+@media (max-width: 480px) {
+
+    .lbc-client-finance-header {
+        margin-bottom: 21px;
+    }
+
+
+    .lbc-client-finance-header h2 {
+        font-size: 23px;
+    }
+
+
+    .lbc-client-finance-balance-card {
+        padding: 20px 17px;
+    }
+
+
+    .lbc-client-finance-balance-line {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 5px;
+    }
+
+
+    .lbc-client-finance-balance-line strong {
+        font-size: 24px;
+    }
+
+
+    .lbc-client-finance-empty-state {
+        align-items: flex-start;
+        padding: 19px;
+    }
+
+
+    .lbc-client-finance-history-toggle {
+        min-height: 54px;
+        padding: 0 16px;
+    }
+
+
+    .lbc-client-finance-history-panel {
+        padding: 17px;
+    }
+
+
+    .lbc-client-finance-section-heading h3 {
+        font-size: 17px;
+    }
+
+
+    .lbc-client-finance-payment {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 7px;
+    }
+
+
+    .lbc-client-finance-payment > strong {
+        font-size: 13px;
+    }
+
+}

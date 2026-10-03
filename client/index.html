@@ -1,0 +1,1474 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <meta
+        name="description"
+        content="Secure LORDBLESS CONSULTANCY client portal."
+    >
+
+    <meta
+        name="author"
+        content="LORDBLESS CONSULTANCY"
+    >
+
+    <title>
+        Client Portal | LORDBLESS CONSULTANCY
+    </title>
+
+    <link
+    rel="stylesheet"
+    href="client.css"
+>
+
+<link
+    rel="stylesheet"
+    href="components/clientFinance.css"
+>
+
+</head>
+
+
+<body>
+
+
+<!-- =========================================================
+     CLIENT PORTAL APPLICATION
+     ========================================================= -->
+
+<div class="client-portal-app">
+
+
+    <!-- =====================================================
+         MOBILE OVERLAY
+         ===================================================== -->
+
+    <div
+        class="sidebar-overlay"
+        id="sidebar-overlay"
+        aria-hidden="true"
+    ></div>
+
+
+    <!-- =====================================================
+         SIDEBAR
+         ===================================================== -->
+
+    <aside
+        class="client-sidebar"
+        id="client-sidebar"
+        aria-label="Client portal navigation"
+    >
+
+        <div class="sidebar-brand">
+
+            <a
+                href="../index.html"
+                class="sidebar-brand-link"
+                aria-label="LORDBLESS CONSULTANCY"
+            >
+
+                <img
+                    src="../images/service-images/lordbless-header-logo.png"
+                    alt="LORDBLESS CONSULTANCY"
+                    class="sidebar-logo"
+                >
+
+            </a>
+
+        </div>
+
+
+        <div class="sidebar-portal-label">
+            CLIENT PORTAL
+        </div>
+
+
+        <nav class="client-navigation">
+
+
+            <div class="navigation-group">
+
+                <p class="navigation-label">
+                    MAIN
+                </p>
+
+
+                <button
+                    type="button"
+                    class="client-nav-item active"
+                    data-view="overview"
+                >
+
+                    <span class="nav-icon">⌂</span>
+
+                    <span>
+                        Overview
+                    </span>
+
+                </button>
+
+
+    <button
+    type="button"
+    class="client-nav-item"
+    data-view="payments"
+>
+
+    <span class="nav-icon">◌</span>
+
+    <span>
+        Finance
+    </span>
+
+</button>
+
+                <button
+                    type="button"
+                    class="client-nav-item"
+                    data-view="documents"
+                >
+
+                    <span class="nav-icon">▣</span>
+
+                    <span>
+                        My Documents
+                    </span>
+
+                </button>
+
+
+                <button
+                    type="button"
+                    class="client-nav-item"
+                    data-view="messages"
+                >
+
+                    <span class="nav-icon">□</span>
+
+                    <span>
+                        Messages
+                    </span>
+
+                    <span
+                        class="nav-badge"
+                        id="messages-badge"
+                        hidden
+                    >
+                        0
+                    </span>
+
+                </button>
+
+<!-- Finance navigation is already defined above -->
+
+            </div>
+
+
+            <div class="navigation-group">
+
+                <p class="navigation-label">
+                    ACCOUNT
+                </p>
+
+
+                <button
+                    type="button"
+                    class="client-nav-item"
+                    data-view="profile"
+                >
+
+                    <span class="nav-icon">♙</span>
+
+                    <span>
+                        My Profile
+                    </span>
+
+                </button>
+
+
+                <button
+                    type="button"
+                    class="client-nav-item"
+                    data-view="support"
+                >
+
+                    <span class="nav-icon">?</span>
+
+                    <span>
+                        Help & Support
+                    </span>
+
+                </button>
+
+            </div>
+
+
+        </nav>
+
+
+        <div class="sidebar-bottom">
+
+
+            <div class="sidebar-client-mini">
+
+                <div class="client-avatar">
+                    KM
+                </div>
+
+                <div class="client-mini-info">
+
+                    <strong id="sidebar-client-name"></strong>
+
+<span id="sidebar-client-id"></span>
+
+
+                </div>
+
+            </div>
+
+
+            <button
+                type="button"
+                class="sign-out-button"
+                data-action="sign-out"
+            >
+
+                <span>
+                    ↪
+                </span>
+
+                Sign Out
+
+            </button>
+
+        </div>
+
+    </aside>
+
+
+    <!-- =====================================================
+         MAIN AREA
+         ===================================================== -->
+
+    <div class="client-main-area">
+
+
+        <!-- =================================================
+             TOPBAR
+             ================================================= -->
+
+        <header class="client-topbar">
+
+            <div class="topbar-left">
+
+                <button
+                    type="button"
+                    class="mobile-sidebar-button"
+                    id="mobile-sidebar-button"
+                    aria-label="Open client navigation"
+                    aria-expanded="false"
+                >
+                    ☰
+                </button>
+
+
+                <div>
+
+                    <p
+                        class="topbar-eyebrow"
+                        id="topbar-eyebrow"
+                    >
+                        LORDBLESS CLIENT PORTAL
+                    </p>
+
+                    <h1 id="view-title">
+                        Overview
+                    </h1>
+
+                </div>
+
+            </div>
+
+
+            <div class="topbar-right">
+
+                <div class="secure-indicator">
+
+                    <span class="secure-dot"></span>
+
+                    Secure Portal
+
+                </div>
+
+
+                <div class="topbar-client">
+
+                    <div class="topbar-avatar">
+                        KM
+                    </div>
+
+                    <div>
+
+                        <strong id="topbar-client-name">
+
+                        </strong>
+
+                        <span id="topbar-client-email">
+                        
+                        </span>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </header>
+
+
+        <!-- =================================================
+             CONTENT
+             ================================================= -->
+
+        <main class="client-content">
+
+
+            <!-- =================================================
+                 OVERVIEW VIEW
+                 ================================================= -->
+
+            <section
+                class="portal-view active"
+                id="view-overview"
+                data-view-panel="overview"
+            >
+
+
+                <div class="welcome-panel">
+
+                    <div class="welcome-copy">
+
+                        <p class="portal-eyebrow">
+                            YOUR LORDBLESS ACCOUNT
+                        </p>
+
+                        <h2>
+                            Welcome back,
+                            <span id="client-name">
+                            
+                            </span>
+                        </h2>
+
+                        <p>
+                            Your LORDBLESS Client ID remains with
+                            you across every journey and service.
+                        </p>
+
+                    </div>
+
+
+                    <div class="welcome-client-card">
+
+                        <span>
+                            CLIENT ID
+                        </span>
+
+                        <strong id="client-id"></strong>
+
+                    <small id="client-email"></small>
+
+                    </div>
+
+                </div>
+
+
+                <!-- =============================================
+                     SUMMARY CARDS
+                     ============================================= -->
+
+                <div class="summary-grid">
+
+
+                    <!-- ACTIVE JOURNEY -->
+
+                    <article class="summary-card">
+
+                        <div class="summary-card-icon">
+                            ◇
+                        </div>
+
+                        <div class="summary-card-content">
+
+                            <span>
+                                ACTIVE JOURNEY
+                            </span>
+
+                            <strong id="active-journey-count">
+                                1
+                            </strong>
+
+                            <small>
+                                Currently in progress
+                            </small>
+
+                        </div>
+
+                    </article>
+
+
+                    <!-- COMPLETED -->
+
+                    <article class="summary-card">
+
+                        <div class="summary-card-icon">
+                            ✓
+                        </div>
+
+                        <div class="summary-card-content">
+
+                            <span>
+                                COMPLETED
+                            </span>
+
+                            <strong id="completed-journey-count">
+                                1
+                            </strong>
+
+                            <small>
+                                Previous journeys
+                            </small>
+
+                        </div>
+
+                    </article>
+
+
+                    <!-- DOCUMENTS -->
+
+                    <article class="summary-card">
+
+                        <div class="summary-card-icon">
+                            ▣
+                        </div>
+
+                        <div class="summary-card-content">
+
+                            <span>
+                                DOCUMENTS
+                            </span>
+
+                            <strong id="document-count">
+                                3
+                            </strong>
+
+                            <small>
+                                In your document library
+                            </small>
+
+                        </div>
+
+                    </article>
+
+
+                    <!-- PENDING ACTIONS -->
+
+                    <article class="summary-card">
+
+                        <div class="summary-card-icon">
+                            #
+                        </div>
+
+                        <div class="summary-card-content">
+
+                            <span>
+                                PENDING ACTIONS
+                            </span>
+
+                            <strong id="pending-actions-count">
+                                1
+                            </strong>
+
+                            <small>
+                                Requires your attention
+                            </small>
+
+                        </div>
+
+                    </article>
+
+
+                </div>
+
+
+                <!-- =============================================
+                     CURRENT JOURNEY
+                     ============================================= -->
+
+                <section class="dashboard-section">
+
+                    <div class="section-heading">
+
+                        <div>
+
+                            <p class="portal-eyebrow">
+                                CURRENT JOURNEY
+                            </p>
+
+                            <h2>
+                                Your Active Journey
+                            </h2>
+
+                        </div>
+
+                        <button
+                            type="button"
+                            class="text-button"
+                            data-view-link="journeys"
+                        >
+                            View All Journeys →
+                        </button>
+
+                    </div>
+
+
+                    <div
+                        class="current-journey-card"
+                        id="current-journey-card"
+                    >
+
+                        <div class="journey-card-header">
+
+                            <div class="journey-service-mark">
+                                C
+                            </div>
+
+                            <div class="journey-card-title">
+
+                                <span
+                                    id="overview-journey-reference"
+                                    class="journey-reference"
+                                >
+                                    LBC-2026-00021
+                                </span>
+
+                                <h3 id="overview-journey-title">
+                                    Germany Career Journey
+                                </h3>
+
+                                <p>
+
+                                    <span id="overview-journey-service">
+                                        LORDBLESS GLOBAL CAREERS
+                                    </span>
+
+                                    <span class="meta-divider">
+                                        •
+                                    </span>
+
+                                    <span id="overview-journey-destination">
+                                        Germany
+                                    </span>
+
+                                </p>
+
+                            </div>
+
+
+                            <span
+                                class="status-pill progress"
+                                id="overview-journey-status"
+                            >
+                                In Progress
+                            </span>
+
+                        </div>
+
+
+                        <div class="journey-progress-area">
+
+                            <div class="progress-meta">
+
+                                <span>
+                                    Journey progress
+                                </span>
+
+                                <strong
+                                    id="overview-progress-label"
+                                >
+                                    65%
+                                </strong>
+
+                            </div>
+
+
+                            <div class="progress-track">
+
+                                <div
+                                    class="progress-fill"
+                                    id="overview-progress-bar"
+                                    style="width:65%"
+                                ></div>
+
+                            </div>
+
+
+                            <div class="journey-phases">
+
+                                <span class="complete">
+                                    Discover
+                                </span>
+
+                                <span class="complete">
+                                    Assess
+                                </span>
+
+                                <span class="complete">
+                                    Plan
+                                </span>
+
+                                <span class="current">
+                                    Prepare
+                                </span>
+
+                                <span>
+                                    Connect
+                                </span>
+
+                                <span>
+                                    Travel
+                                </span>
+
+                                <span>
+                                    Arrive
+                                </span>
+
+                            </div>
+
+                        </div>
+
+
+                        <div class="journey-card-footer">
+
+                            <div>
+
+                                <span class="footer-label">
+                                    NEXT STEP
+                                </span>
+
+                                <strong id="overview-next-step">
+                                    Complete your client details
+                                    and upload the requested
+                                    documents.
+                                </strong>
+
+                            </div>
+
+
+                            <button
+                                type="button"
+                                class="primary-button"
+                                data-view-link="journeys"
+                            >
+                                Continue Journey
+                                →
+                            </button>
+
+                        </div>
+
+                    </div>
+
+                </section>
+
+
+            </section>
+
+
+            <!-- =================================================
+                 JOURNEYS VIEW
+                 ================================================= -->
+
+            <section
+                class="portal-view"
+                id="view-journeys"
+                data-view-panel="journeys"
+            >
+
+                <div class="page-introduction">
+
+                    <p class="portal-eyebrow">
+                        YOUR ACCOUNT
+                    </p>
+
+                    <h2>
+                        My LORDBLESS Journeys
+                    </h2>
+
+                    <p>
+                        Your Client ID connects all your current,
+                        previous and future transactions.
+                    </p>
+
+                </div>
+
+
+                <div
+                    class="journeys-list"
+                    id="transaction-history"
+                ></div>
+
+
+                <div class="new-journey-panel">
+
+                    <div>
+
+                        <span class="portal-eyebrow">
+                            NEED SOMETHING ELSE?
+                        </span>
+
+                        <h3>
+                            Start a New Journey
+                        </h3>
+
+                        <p>
+                            Your existing Client ID remains with
+                            you when you begin another LORDBLESS
+                            service.
+                        </p>
+
+                    </div>
+
+
+                    <button
+                        type="button"
+                        class="secondary-button"
+                        data-action="new-journey"
+                    >
+                        + Start a New Journey
+                    </button>
+
+                </div>
+
+            </section>
+
+
+            <!-- =================================================
+                 DOCUMENTS VIEW
+                 ================================================= -->
+
+            <section
+                class="portal-view"
+                id="view-documents"
+                data-view-panel="documents"
+            >
+
+
+                <!-- =============================================
+                     DOCUMENT PAGE INTRODUCTION
+                     ============================================= -->
+
+                <div class="page-introduction document-page-introduction">
+
+                    <div>
+
+                        <p class="portal-eyebrow">
+                            DOCUMENT LIBRARY
+                        </p>
+
+                        <h2>
+                            My Documents
+                        </h2>
+
+                        <p>
+                            Your permanent LORDBLESS document library.
+                            Approved documents can be reused across
+                            applicable journeys.
+                        </p>
+
+                    </div>
+
+                </div>
+
+
+                <!-- =============================================
+                     DOCUMENT SUMMARY
+                     ============================================= -->
+
+                <section
+                    class="document-summary-grid"
+                    aria-label="Document summary"
+                >
+
+
+                    <!-- TOTAL DOCUMENTS -->
+
+                    <article class="document-summary-card">
+
+                        <div class="document-summary-icon">
+                            ▣
+                        </div>
+
+                        <div class="document-summary-content">
+
+                            <span>
+                                DOCUMENTS
+                            </span>
+
+                            <strong id="documents-total-count">
+                                3
+                            </strong>
+
+                            <small>
+                                In your permanent library
+                            </small>
+
+                        </div>
+
+                    </article>
+
+
+                    <!-- APPROVED -->
+
+                    <article class="document-summary-card">
+
+                        <div class="document-summary-icon">
+                            ✓
+                        </div>
+
+                        <div class="document-summary-content">
+
+                            <span>
+                                APPROVED
+                            </span>
+
+                            <strong id="documents-approved-count">
+                                2
+                            </strong>
+
+                            <small>
+                                Ready for reuse
+                            </small>
+
+                        </div>
+
+                    </article>
+
+
+                    <!-- UNDER REVIEW -->
+
+                    <article class="document-summary-card">
+
+                        <div class="document-summary-icon">
+                            ◌
+                        </div>
+
+                        <div class="document-summary-content">
+
+                            <span>
+                                UNDER REVIEW
+                            </span>
+
+                            <strong id="documents-review-count">
+                                1
+                            </strong>
+
+                            <small>
+                                Awaiting review
+                            </small>
+
+                        </div>
+
+                    </article>
+
+
+                    <!-- ACTION REQUIRED -->
+
+                    <article
+                        class="document-summary-card document-summary-card-attention"
+                    >
+
+                        <div class="document-summary-icon">
+                            !
+                        </div>
+
+                        <div class="document-summary-content">
+
+                            <span>
+                                ACTION REQUIRED
+                            </span>
+
+                            <strong id="documents-action-count">
+                                0
+                            </strong>
+
+                            <small>
+                                Requires your attention
+                            </small>
+
+                        </div>
+
+                    </article>
+
+
+                </section>
+
+
+    <!-- =============================================
+     DOCUMENT CENTRE
+     ============================================= -->
+
+<div
+    class="document-centre-wrapper"
+    id="document-centre-container"
+></div>
+
+                <!-- =============================================
+                     UPLOAD DOCUMENT CTA
+                     ============================================= -->
+
+                <section class="document-upload-section">
+
+                    <div class="document-upload-icon">
+                        +
+                    </div>
+
+
+                    <div class="document-upload-content">
+
+                        <p class="portal-eyebrow">
+                            DOCUMENT ACTION
+                        </p>
+
+                        <h3>
+                            Need to submit another document?
+                        </h3>
+
+                        <p>
+                            Add a document to your permanent LORDBLESS
+                            document library. Approved documents may be
+                            reused across applicable journeys.
+                        </p>
+
+                        <small>
+                            Accepted formats: PDF, JPG, JPEG, PNG, DOC and DOCX
+                        </small>
+
+                    </div>
+
+
+                    <div class="document-upload-action">
+
+                        <button
+                            type="button"
+                            class="primary-button"
+                            data-document-upload="new"
+                        >
+                            + Upload Document
+                        </button>
+
+                        <input
+                            type="file"
+                            id="client-document-upload"
+                            hidden
+                            accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                        >
+
+                    </div>
+
+                </section>
+
+
+            </section>
+
+
+            <!-- =================================================
+                 MESSAGES VIEW
+                 ================================================= -->
+
+            <section
+                class="portal-view"
+                id="view-messages"
+                data-view-panel="messages"
+            >
+
+                <div class="page-introduction">
+
+                    <p class="portal-eyebrow">
+                        COMMUNICATION
+                    </p>
+
+                    <h2>
+                        Messages & Requests
+                    </h2>
+
+                    <p>
+                        Important requests and communication from
+                        LORDBLESS will appear here.
+                    </p>
+
+                </div>
+
+
+                <div id="messages-container">
+
+                <div class="empty-state-card">
+
+                    <div class="empty-state-icon">
+                        □
+                    </div>
+
+                    <h3>
+                        No new messages
+                    </h3>
+
+                    <p>
+                        There are currently no messages or
+                        outstanding communication requests
+                        for your account.
+                    </p>
+
+                </div>
+
+                </div>
+
+            </section>
+
+
+            <!-- =================================================
+                 PAYMENTS VIEW
+                 ================================================= -->
+
+     <section
+    class="portal-view"
+    id="view-payments"
+    data-view-panel="payments"
+>
+
+    <div
+        id="client-finance-container"
+    ></div>
+
+</section>
+
+
+            <!-- =================================================
+                 PROFILE VIEW
+                 ================================================= -->
+
+            <section
+                class="portal-view"
+                id="view-profile"
+                data-view-panel="profile"
+            >
+
+                <div class="page-introduction">
+
+                    <p class="portal-eyebrow">
+                        ACCOUNT
+                    </p>
+
+                    <h2>
+                        My Profile
+                    </h2>
+
+                    <p>
+                        Your permanent client information is used
+                        across your LORDBLESS journeys.
+                    </p>
+
+                </div>
+
+
+                <div class="profile-layout">
+
+
+                    <!-- =========================================
+                         CLIENT INFORMATION
+                         ========================================= -->
+
+                    <section class="profile-card">
+
+                        <div class="profile-card-heading">
+
+                            <div class="profile-large-avatar">
+                                KM
+                            </div>
+
+                            <div>
+
+                                <span>
+                                    LORDBLESS CLIENT
+                                </span>
+                                <h3 id="profile-name"></h3>
+
+                                <p id="profile-client-id"></p>
+
+                                
+
+                            </div>
+
+                        </div>
+
+
+                        <div class="profile-divider"></div>
+
+
+                        <div class="profile-details-grid">
+
+                            <div class="profile-detail">
+
+                                <span>
+                                    EMAIL
+                                </span>
+
+                                <strong id="profile-email">
+                                <span id="topbar-client-email"></span>
+                                </strong>
+
+                            </div>
+
+
+                            <div class="profile-detail">
+
+                                <span>
+                                    WHATSAPP
+                                </span>
+
+                                <strong id="profile-whatsapp">
+                                    +233 20 123 4567
+                                </strong>
+
+                            </div>
+
+
+                            <div class="profile-detail">
+
+                                <span>
+                                    NATIONALITY
+                                </span>
+
+                                <strong id="profile-nationality">
+                                    Ghanaian
+                                </strong>
+
+                            </div>
+
+
+                            <div class="profile-detail">
+
+                                <span>
+                                    COUNTRY OF RESIDENCE
+                                </span>
+
+                                <strong id="profile-country">
+                                    Ghana
+                                </strong>
+
+                            </div>
+
+                        </div>
+
+                    </section>
+
+
+                    <!-- =========================================
+                         PASSPORT INFORMATION
+                         ========================================= -->
+
+                    <section class="profile-card">
+
+                        <div class="profile-section-title">
+
+                            <p class="portal-eyebrow">
+                                IDENTITY
+                            </p>
+
+                            <h3>
+                                Passport Information
+                            </h3>
+
+                        </div>
+
+
+                        <div class="profile-details-grid">
+
+                            <div class="profile-detail">
+
+                                <span>
+                                    PASSPORT NUMBER
+                                </span>
+
+                                <strong id="profile-passport">
+                                    G12345678
+                                </strong>
+
+                            </div>
+
+
+                            <div class="profile-detail">
+
+                                <span>
+                                    ISSUE DATE
+                                </span>
+
+                                <strong id="profile-passport-issue">
+                                    16 Dec 2021
+                                </strong>
+
+                            </div>
+
+
+                            <div class="profile-detail">
+
+                                <span>
+                                    EXPIRY DATE
+                                </span>
+
+                                <strong id="profile-passport-expiry">
+                                    15 Dec 2026
+                                </strong>
+
+                            </div>
+
+
+                            <div class="profile-detail">
+
+                                <span>
+                                    STATUS
+                                </span>
+
+                                <strong class="profile-status-warning">
+                                    Renewal approaching
+                                </strong>
+
+                            </div>
+
+                        </div>
+
+                    </section>
+
+
+                </div>
+
+            </section>
+
+
+            <!-- =================================================
+                 SUPPORT VIEW
+                 ================================================= -->
+
+            <section
+                class="portal-view"
+                id="view-support"
+                data-view-panel="support"
+            >
+
+                <div class="page-introduction">
+
+                    <p class="portal-eyebrow">
+                        LORDBLESS SUPPORT
+                    </p>
+
+                    <h2>
+                        Help & Support
+                    </h2>
+
+                    <p>
+                        Need assistance with your journey?
+                        Contact the LORDBLESS team.
+                    </p>
+
+                </div>
+
+
+                <div class="support-grid">
+
+
+                    <!-- WHATSAPP SUPPORT -->
+
+                    <article class="support-card">
+
+                        <div class="support-icon">
+                            W
+                        </div>
+
+                        <div>
+
+                            <span class="portal-eyebrow">
+                                WHATSAPP
+                            </span>
+
+                            <h3>
+                                Chat with LORDBLESS
+                            </h3>
+
+                            <p>
+                                Contact our team directly for
+                                questions about your journey.
+                            </p>
+
+                            <a
+                                href="https://wa.me/4915754780010"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                class="primary-button"
+                            >
+                                Open WhatsApp →
+                            </a>
+
+                        </div>
+
+                    </article>
+
+
+                    <!-- JOURNEY SUPPORT -->
+
+                    <article class="support-card">
+
+                        <div class="support-icon">
+                            ?
+                        </div>
+
+                        <div>
+
+                            <span class="portal-eyebrow">
+                                YOUR JOURNEY
+                            </span>
+
+                            <h3>
+                                Need clarification?
+                            </h3>
+
+                            <p>
+                                Your Client ID and transaction
+                                reference help us identify your
+                                journey quickly.
+                            </p>
+
+                            <strong>
+                                LBC-CLIENT-0001
+                            </strong>
+
+                        </div>
+
+                    </article>
+
+
+                </div>
+
+            </section>
+
+
+        </main>
+
+
+        <!-- =================================================
+             FOOTER
+             ================================================= -->
+
+        <footer class="client-footer">
+
+            <span>
+                © 2026 LORDBLESS CONSULTANCY
+            </span>
+
+            <span>
+                CONNECTING PEOPLE. MOVING POSSIBILITIES.
+            </span>
+
+        </footer>
+
+    </div>
+
+</div>
+
+
+<!-- =========================================================
+     MODAL
+     ========================================================= -->
+
+<div
+    class="portal-modal"
+    id="portal-modal"
+    aria-hidden="true"
+>
+
+    <div class="modal-card">
+
+        <button
+            type="button"
+            class="modal-close"
+            id="modal-close"
+            aria-label="Close"
+        >
+            ×
+        </button>
+
+
+        <p class="portal-eyebrow">
+            LORDBLESS CONSULTANCY
+        </p>
+
+
+        <h2 id="modal-title">
+            Client Portal
+        </h2>
+
+
+        <p id="modal-description">
+            Your request is being prepared.
+        </p>
+
+
+        <button
+            type="button"
+            class="primary-button"
+            id="modal-action"
+        >
+            Continue
+        </button>
+
+    </div>
+
+</div>
+
+
+<!-- =========================================================
+     JAVASCRIPT
+     ========================================================= -->
+
+<script src="../js/lordbless-data.js"></script>
+
+<script src="../js/portalMockData.js"></script>
+
+<script src="components/applicationForm.js"></script>
+
+<script src="../js/portalDataBridge.js"></script>
+
+<script src="../admin/payment/paymentDataBridge.js"></script>
+
+<script src="components/documentCentre.js"></script>
+
+<script src="components/phaseUnlockEngine.js"></script>
+
+<script src="components/accountActivation.js"></script>
+
+<script src="components/clientAccess.js"></script>
+
+<script src="components/clientFinance.js"></script>
+
+<script src="client.js"></script>
+
+<script src="components/accessControl.js"></script>
+
+</body>
+
+</html>

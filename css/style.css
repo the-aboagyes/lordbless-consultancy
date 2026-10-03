@@ -3220,3 +3220,67 @@ textarea {
         height: 30px;
     }
 }
+/* =========================================================
+   EXPANDED JOURNEY STORIES
+   ========================================================= */
+
+.journey-story-full {
+    margin-top: 1rem;
+}
+
+.journey-story-full summary {
+    cursor: pointer;
+    list-style: none;
+    display: inline-block;
+}
+
+.journey-story-full summary::-webkit-details-marker {
+    display: none;
+}
+
+.journey-story-full summary::after {
+    content: " +";
+    font-weight: 500;
+}
+
+.journey-story-full[open] summary::after {
+    content: " −";
+}
+
+.journey-story-expanded {
+    margin-top: 1.5rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid rgba(0, 0, 0, 0.10);
+}
+
+.journey-story-expanded p {
+    line-height: 1.75;
+}
+
+.journey-story-kicker {
+    font-size: 0.72rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    font-weight: 600;
+    margin-bottom: 0.75rem;
+}
+
+.journey-story-expanded h4 {
+    margin-bottom: 1.25rem;
+    line-height: 1.35;
+}
+
+.journey-story-expanded-block {
+    margin-top: 1.75rem;
+    padding-top: 1.25rem;
+    border-top: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.journey-story-expanded-block h5 {
+    margin-bottom: 0.65rem;
+}
+
+.journey-story-closing {
+    margin-top: 1.75rem;
+    font-weight: 600;
+}

@@ -1,0 +1,1055 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>LORDBLESS ADMIN | CONSULTANCY</title>
+
+    <link
+        rel="stylesheet"
+        href="admin.css"
+    >
+
+</head>
+
+
+<body>
+
+<div class="admin-app">
+
+
+    <!-- =====================================================
+         SIDEBAR
+         ===================================================== -->
+
+    <aside class="sidebar">
+
+
+        <!-- BRAND -->
+        <div class="brand">
+
+    <div class="brand-label">
+        ADMINISTRATION
+    </div>
+
+</div>
+
+        <!-- MAIN NAVIGATION -->
+
+        <nav class="main-nav">
+
+
+            <!-- DASHBOARD -->
+
+            <button
+                type="button"
+                class="nav-item active"
+                data-view="dashboard"
+            >
+
+                <span class="nav-icon">
+                    ⌂
+                </span>
+
+                Dashboard
+
+            </button>
+
+
+            <!-- ENQUIRIES -->
+
+            <button
+                type="button"
+                class="nav-item"
+                data-view="enquiries"
+            >
+
+                <span class="nav-icon">
+                    ▤
+                </span>
+
+                Enquiries
+
+            </button>
+
+
+            <!-- CLIENTS -->
+
+            <button
+                type="button"
+                class="nav-item"
+                data-view="clients"
+            >
+
+                <span class="nav-icon">
+                    ♙
+                </span>
+
+                Clients
+
+            </button>
+
+
+            <!-- FOLLOW-UPS -->
+
+            <button
+                type="button"
+                class="nav-item"
+                data-view="followups"
+            >
+
+                <span class="nav-icon">
+                    ◷
+                </span>
+
+                Follow-ups
+
+            </button>
+
+
+            <!-- DOCUMENTS -->
+
+            <button
+                type="button"
+                class="nav-item"
+                data-view="documents"
+            >
+
+                <span class="nav-icon">
+                    □
+                </span>
+
+                Documents
+
+            </button>
+
+<!-- FINANCE -->
+
+<button
+    type="button"
+    class="nav-item"
+    data-view="finance"
+>
+
+    <span class="nav-icon">
+        €
+    </span>
+
+    Finance
+
+</button>
+
+
+            <!-- ASSESSMENTS -->
+
+            <button
+                type="button"
+                class="nav-item"
+                data-view="assessments"
+            >
+
+                <span class="nav-icon">
+                    ✓
+                </span>
+
+                Assessments
+
+            </button>
+
+
+            <!-- STORIES -->
+
+            <button
+                type="button"
+                class="nav-item"
+                data-view="stories"
+            >
+
+                <span class="nav-icon">
+                    ✦
+                </span>
+
+                Stories
+
+            </button>
+
+
+            <!-- TEAM & ACCESS -->
+
+            <button
+                type="button"
+                class="nav-item"
+                data-view="team"
+            >
+
+                <span class="nav-icon">
+                    👥
+                </span>
+
+                Team & Access
+
+            </button>
+
+
+        </nav>
+
+
+        <!-- SIDEBAR BOTTOM -->
+
+        <div class="sidebar-bottom">
+
+
+            <!-- SETTINGS -->
+
+            <button
+                type="button"
+                class="nav-item"
+                data-view="settings"
+            >
+
+                <span class="nav-icon">
+                    ⚙
+                </span>
+
+                Settings
+
+            </button>
+
+
+            <!-- SIGN OUT -->
+
+            <button
+                type="button"
+                class="nav-item logout-button"
+            >
+
+                <span class="nav-icon">
+                    ↪
+                </span>
+
+                Sign Out
+
+            </button>
+
+
+        </div>
+
+
+    </aside>
+
+
+
+    <!-- =====================================================
+         MAIN CONTENT
+         ===================================================== -->
+
+    <main class="main-content">
+
+
+        <!-- TOPBAR -->
+
+        <header class="topbar">
+
+
+            <div class="topbar-heading">
+
+                <div class="topbar-label">
+                    LORDBLESS CONSULTANCY
+                </div>
+
+
+                <h1 id="page-title">
+                    Dashboard
+                </h1>
+
+            </div>
+
+
+            <!-- ADMIN PROFILE -->
+
+            <div class="admin-profile">
+
+
+                <div class="profile-avatar">
+                    A
+                </div>
+
+
+                <div class="profile-info">
+
+                    <strong>
+                        Administrator
+                    </strong>
+
+                    <span>
+                        Super Admin
+                    </span>
+
+                </div>
+
+
+            </div>
+
+
+        </header>
+
+
+
+        <!-- =================================================
+             APPLICATION CONTENT
+             ================================================= -->
+
+        <section
+            id="app-content"
+            class="content-area"
+        >
+        </section>
+
+
+    </main>
+
+
+</div>
+
+<!-- =========================================================
+     FINANCE WORKSPACE TEMPLATE
+     
+     Main Finance area with its own internal navigation.
+     ========================================================= -->
+
+<template id="finance-template">
+
+    <section
+        class="admin-section finance-workspace"
+        id="finance-section"
+    >
+
+    <!-- FINANCE INTERNAL WORKSPACE -->
+
+    
+
+        <!-- FINANCE LAYOUT -->
+
+        <div class="finance-layout">
+
+            <!-- FINANCE INTERNAL NAVIGATION -->
+
+            <aside
+                class="finance-sidebar"
+                aria-label="Finance navigation"
+            >
+
+                <button
+                    type="button"
+                    class="finance-nav-item active"
+                    data-finance-view="overview"
+                >
+                    <span class="finance-nav-icon">▦</span>
+                    Overview
+                </button>
+
+
+                <button
+                    type="button"
+                    class="finance-nav-item"
+                    data-finance-view="payments"
+                >
+                    <span class="finance-nav-icon">€</span>
+                    Payments
+                </button>
+
+
+                <button
+                    type="button"
+                    class="finance-nav-item"
+                    data-finance-view="verification"
+                >
+                    <span class="finance-nav-icon">✓</span>
+                    Verification
+                </button>
+
+
+                <button
+                    type="button"
+                    class="finance-nav-item"
+                    data-finance-view="receipts"
+                >
+                    <span class="finance-nav-icon">▤</span>
+                    Receipts
+                </button>
+
+
+                <button
+                    type="button"
+                    class="finance-nav-item"
+                    data-finance-view="reports"
+                >
+                    <span class="finance-nav-icon">▥</span>
+                    Reports
+                </button>
+
+            </aside>
+
+
+            <!-- FINANCE CONTENT -->
+
+            <div
+                class="finance-content"
+                id="finance-content"
+            >
+
+                <div class="empty-state">
+
+                    <h3>
+                        Finance Overview
+                    </h3>
+
+                    <p>
+                        Financial activity and payment operations will appear here.
+                    </p>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </section>
+
+</template>
+
+
+
+<!-- =========================================================
+     TEAM & ACCESS TEMPLATE
+
+     IMPORTANT:
+     This is NOT inside the sidebar.
+     admin.js injects it into #app-content when
+     Team & Access is selected.
+     ========================================================= -->
+
+<template id="team-access-template">
+
+
+    <section
+        class="admin-section"
+        id="team-section"
+    >
+
+
+        <!-- PAGE HEADER -->
+
+        <div class="section-header">
+
+            <div>
+
+                <p class="section-eyebrow">
+                    ADMINISTRATION
+                </p>
+
+
+                <h2>
+                    Team & Access
+                </h2>
+
+
+                <p class="section-description">
+                    Manage the LORDBLESS operational team
+                    and desk access.
+                </p>
+
+            </div>
+
+        </div>
+
+
+
+        <!-- =================================================
+             ACCESS SUMMARY
+             ================================================= -->
+
+        <div class="access-summary-grid">
+
+
+            <!-- TEAM MEMBERS -->
+
+            <div class="access-summary-card">
+
+                <span class="access-summary-label">
+                    TEAM MEMBERS
+                </span>
+
+
+                <strong id="team-member-count">
+                    2
+                </strong>
+
+
+                <span class="access-summary-note">
+                    Current accounts
+                </span>
+
+            </div>
+
+
+
+            <!-- ACTIVE DESKS -->
+
+            <div class="access-summary-card">
+
+                <span class="access-summary-label">
+                    ACTIVE DESKS
+                </span>
+
+
+                <strong id="active-desk-count">
+                    3
+                </strong>
+
+
+                <span class="access-summary-note">
+                    Operational desks
+                </span>
+
+            </div>
+
+
+
+            <!-- FINANCE -->
+
+            <div class="access-summary-card">
+
+                <span class="access-summary-label">
+                    FINANCE ACCESS
+                </span>
+
+
+                <strong>
+                    ADMIN ONLY
+                </strong>
+
+
+                <span class="access-summary-note">
+                    Restricted area
+                </span>
+
+            </div>
+
+
+        </div>
+
+
+
+        <!-- =================================================
+             TEAM ACCOUNTS
+             ================================================= -->
+
+        <div class="access-panel">
+
+
+            <div class="access-panel-header">
+
+                <div>
+
+                    <h3>
+                        Team Accounts
+                    </h3>
+
+
+                    <p>
+                        Shared operational accounts can be
+                        reassigned without creating a new login.
+                    </p>
+
+                </div>
+
+            </div>
+
+
+
+            <!-- TEAM MEMBER 01 -->
+
+            <div class="team-account-card">
+
+
+                <div class="team-account-icon">
+                    TM
+                </div>
+
+
+
+                <div class="team-account-main">
+
+
+                    <div class="team-account-title-row">
+
+                        <h4>
+                            TEAM MEMBER 01
+                        </h4>
+
+
+                        <span class="access-status active">
+                            Active
+                        </span>
+
+                    </div>
+
+
+                    <p class="team-account-login">
+
+                        Login:
+                        <strong>
+                            team01
+                        </strong>
+
+                    </p>
+
+                </div>
+
+
+
+                <div class="team-account-details">
+
+
+                    <div class="access-detail">
+
+                        <span>
+                            ROLE
+                        </span>
+
+
+                        <strong id="team-member-role">
+                            Desk Officer
+                        </strong>
+
+                    </div>
+
+
+
+                    <div class="access-detail">
+
+                        <span>
+                            DESK
+                        </span>
+
+
+                        <strong id="team-member-desk">
+                            Germany & Europe Desk
+                        </strong>
+
+                    </div>
+
+
+
+                    <div class="access-detail">
+
+                        <span>
+                            FINANCE
+                        </span>
+
+
+                        <strong class="access-denied">
+                            No Access
+                        </strong>
+
+                    </div>
+
+
+                </div>
+
+
+
+                <div class="team-account-actions">
+
+
+                    <button
+                        type="button"
+                        class="admin-btn secondary"
+                        id="edit-team-member"
+                    >
+                        Manage Access
+                    </button>
+
+
+                </div>
+
+
+            </div>
+
+
+
+            <!-- SUPER ADMIN -->
+
+            <div class="team-account-card admin-account">
+
+
+                <div class="team-account-icon">
+                    SA
+                </div>
+
+
+
+                <div class="team-account-main">
+
+
+                    <div class="team-account-title-row">
+
+                        <h4>
+                            SUPER ADMIN
+                        </h4>
+
+
+                        <span class="access-status active">
+                            Active
+                        </span>
+
+                    </div>
+
+
+                    <p class="team-account-login">
+                        Primary administrative account
+                    </p>
+
+                </div>
+
+
+
+                <div class="team-account-details">
+
+
+                    <div class="access-detail">
+
+                        <span>
+                            ROLE
+                        </span>
+
+
+                        <strong>
+                            Super Admin
+                        </strong>
+
+                    </div>
+
+
+
+                    <div class="access-detail">
+
+                        <span>
+                            DESK
+                        </span>
+
+
+                        <strong>
+                            All Desks
+                        </strong>
+
+                    </div>
+
+
+
+                    <div class="access-detail">
+
+                        <span>
+                            FINANCE
+                        </span>
+
+
+                        <strong class="access-granted">
+                            Full Access
+                        </strong>
+
+                    </div>
+
+
+                </div>
+
+
+            </div>
+
+
+        </div>
+
+
+
+        <!-- =================================================
+             OPERATIONAL DESKS
+             ================================================= -->
+
+        <div class="access-panel">
+
+
+            <div class="access-panel-header">
+
+                <div>
+
+                    <h3>
+                        Operational Desks
+                    </h3>
+
+
+                    <p>
+                        Each team account is assigned to one desk.
+                    </p>
+
+                </div>
+
+            </div>
+
+
+
+            <div class="desk-grid">
+
+
+                <!-- CANADA / USA -->
+
+                <div class="desk-card">
+
+
+                    <div class="desk-card-icon">
+                        🇨🇦 🇺🇸
+                    </div>
+
+
+                    <div>
+
+                        <h4>
+                            Canada & U.S. Desk
+                        </h4>
+
+
+                        <p>
+                            Canada and United States
+                        </p>
+
+                    </div>
+
+
+                    <span class="desk-status">
+                        Active
+                    </span>
+
+
+                </div>
+
+
+
+                <!-- GERMANY / EUROPE -->
+
+                <div class="desk-card">
+
+
+                    <div class="desk-card-icon">
+                        🇩🇪 🇪🇺
+                    </div>
+
+
+                    <div>
+
+                        <h4>
+                            Germany & Europe Desk
+                        </h4>
+
+
+                        <p>
+                            Germany and European destinations
+                        </p>
+
+                    </div>
+
+
+                    <span class="desk-status">
+                        Active
+                    </span>
+
+
+                </div>
+
+
+
+                <!-- CHINA -->
+
+                <div class="desk-card">
+
+
+                    <div class="desk-card-icon">
+                        🇨🇳
+                    </div>
+
+
+                    <div>
+
+                        <h4>
+                            China Desk
+                        </h4>
+
+
+                        <p>
+                            China
+                        </p>
+
+                    </div>
+
+
+                    <span class="desk-status">
+                        Active
+                    </span>
+
+
+                </div>
+
+
+            </div>
+
+
+        </div>
+
+
+    </section>
+
+
+</template>
+
+
+
+<!-- =========================================================
+     ENQUIRY DETAIL MODAL
+     ========================================================= -->
+
+<div
+    id="enquiry-modal"
+    class="modal hidden"
+>
+
+
+    <div class="modal-backdrop"></div>
+
+
+    <div class="modal-panel">
+
+
+        <button
+            type="button"
+            id="close-modal"
+            class="modal-close"
+            aria-label="Close enquiry"
+        >
+            ×
+        </button>
+
+
+        <div id="modal-content"></div>
+
+
+    </div>
+
+
+</div>
+
+
+<!-- =========================================================
+     JAVASCRIPT
+     ========================================================= -->
+
+<!-- Supabase SDK MUST load first -->
+
+<script
+    src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"
+></script>
+
+
+<!-- Shared Supabase configuration -->
+
+<script src="../js/supabase-config.js"></script>
+
+
+<!-- Shared data layer -->
+
+<script src="../js/lordbless-data.js"></script>
+
+
+<!-- Admin data -->
+
+<script src="data/mockData.js"></script>
+
+<script src="data/accessData.js"></script>
+
+
+<!-- =========================================================
+     ADMIN CORE COMPONENTS
+     ========================================================= -->
+
+<script src="components/accessControl.js"></script>
+
+<script src="components/statusManager.js"></script>
+
+<script src="components/notes.js"></script>
+
+<script src="components/followups.js"></script>
+
+<script src="components/enquiryDetail.js"></script>
+
+<script src="components/clientDetails.js"></script>
+
+
+<!-- =========================================================
+     SHARED PORTAL DATA
+     ========================================================= -->
+
+<script src="../js/portalMockData.js"></script>
+
+<script src="../js/portalDataBridge.js"></script>
+
+
+<!-- =========================================================
+     DOCUMENT ADMINISTRATION
+     ========================================================= -->
+
+<script src="components/requirementManager.js"></script>
+
+<script src="components/documentReview.js"></script>
+
+<script src="components/documentRequest.js"></script>
+
+
+<!-- =========================================================
+     PAYMENT DATA LAYER
+     ========================================================= -->
+
+<script src="payment/paymentDataModel.js"></script>
+
+<script src="payment/paymentDataBridge.js"></script>
+
+
+<!-- =========================================================
+     PAYMENT COMPONENTS
+     ========================================================= -->
+
+<script src="payment/paymentRequest.js"></script>
+
+<script src="payment/payments.js"></script>
+
+<script src="payment/paymentVerification.js"></script>
+
+<script src="payment/receiptGenerator.js"></script>
+
+<script src="payment/paymentHistory.js"></script>
+
+<script src="payment/financeDashboard.js"></script>
+
+<!-- =========================================================
+     MAIN ADMIN APPLICATION
+     ========================================================= -->
+
+<script src="admin.js"></script>
+
+</body>
+
+</html>

@@ -1,0 +1,6488 @@
+/* =========================================
+   LORDBLESS ADMIN PORTAL
+   DEVELOPMENT VERSION
+========================================= */
+
+
+/* =========================================
+   APPLICATION STATE
+========================================= */
+
+const state = {
+
+    currentView: "dashboard",
+
+    enquiries: [
+        ...LORDBLESS_MOCK_DATA.enquiries
+    ],
+
+    search: "",
+
+    statusFilter: "all"
+
+};
+
+
+/* =========================================
+   CURRENT ADMIN USER
+========================================= */
+
+const LORDBLESS_CURRENT_USER =
+    getUser("USR-001");
+
+
+function getCurrentUser() {
+
+    return LORDBLESS_CURRENT_USER;
+
+}
+
+
+function getCurrentUserAccess() {
+
+    return getAccessSummary(
+        getCurrentUser()
+    );
+
+}
+
+
+/* =========================================
+   DOM
+========================================= */
+
+const appContent =
+    document.getElementById(
+        "app-content"
+    );
+
+
+const pageTitle =
+    document.getElementById(
+        "page-title"
+    );
+
+
+const enquiryModal =
+    document.getElementById(
+        "enquiry-modal"
+    );
+
+
+const modalContent =
+    document.getElementById(
+        "modal-content"
+    );
+
+
+const closeModal =
+    document.getElementById(
+        "close-modal"
+    );
+
+
+/* =========================================
+   INITIALISE
+========================================= */
+
+document.addEventListener(
+    "DOMContentLoaded",
+    () => {
+
+        setupNavigation();
+
+        setupModal();
+
+        setupAdminDocumentRequestEvents();
+
+        renderView(
+            "dashboard"
+        );
+
+    }
+);
+
+
+/* =========================================
+   DOCUMENT REQUEST EVENTS
+========================================= */
+
+function setupAdminDocumentRequestEvents() {
+
+    window.addEventListener(
+        "lordbless:document-request-created",
+        event => {
+
+            const request =
+                event?.detail;
+
+
+            if (!request) {
+                return;
+            }
+
+
+            const requests =
+                LORDBLESS_ADMIN_DOCUMENT_DATA.requests;
+
+
+            const alreadyExists =
+                requests.some(
+                    item =>
+                        item.id === request.id
+                );
+
+
+            if (!alreadyExists) {
+
+                requests.unshift(
+                    request
+                );
+
+            }
+
+
+            if (
+                state.currentView ===
+                "documents"
+            ) {
+
+                renderAdminDocuments();
+
+            }
+
+        }
+    );
+
+}
+
+
+/* =========================================
+   NAVIGATION
+========================================= */
+
+function setupNavigation() {
+
+    document
+        .querySelectorAll(
+            ".nav-item[data-view]"
+        )
+        .forEach(button => {
+
+            button.addEventListener(
+                "click",
+                () => {
+
+                    const view =
+                        button.dataset.view;
+
+                    state.currentView =
+                        view;
+
+                    setActiveNavigation(
+                        view
+                    );
+
+                    renderView(
+                        view
+                    );
+
+                }
+            );
+
+        });
+
+}
+
+
+function setActiveNavigation(
+    view
+) {
+
+    document
+        .querySelectorAll(
+            ".nav-item[data-view]"
+        )
+        .forEach(item => {
+
+            item.classList.toggle(
+                "active",
+                item.dataset.view === view
+            );
+
+        });
+
+}
+
+
+/* =========================================
+   FINANCE WORKSPACE
+========================================= */
+
+function renderFinanceWorkspace() {
+
+    const template =
+        document.getElementById(
+            "finance-template"
+        );
+
+    if (!template) {
+
+        appContent.innerHTML = `
+            <div class="empty-state">
+                Finance workspace could not be loaded.
+            </div>
+        `;
+
+        console.error(
+            "LORDBLESS FINANCE: finance-template not found."
+        );
+
+        return;
+    }
+
+
+    appContent.innerHTML = "";
+
+    appContent.appendChild(
+        template.content.cloneNode(true)
+    );
+
+
+    setupFinanceNavigation();
+
+    renderFinanceView(
+        "overview"
+    );
+
+}
+
+
+/* =========================================
+   FINANCE INTERNAL NAVIGATION
+========================================= */
+
+function setupFinanceNavigation() {
+
+    document
+        .querySelectorAll(
+            ".finance-nav-item"
+        )
+        .forEach(item => {
+
+            item.addEventListener(
+                "click",
+                () => {
+
+                    const view =
+                        item.dataset.financeView;
+
+                    if (!view) {
+                        return;
+                    }
+
+                    document
+                        .querySelectorAll(
+                            ".finance-nav-item"
+                        )
+                        .forEach(navItem => {
+
+                            navItem.classList.toggle(
+                                "active",
+                                navItem === item
+                            );
+
+                        });
+
+
+                    renderFinanceView(
+                        view
+                    );
+
+                }
+            );
+
+        });
+
+}
+
+
+/* =========================================
+   FINANCE SUB-VIEWS
+========================================= */
+
+/* =========================================
+   FINANCE SUB-VIEWS
+========================================= */
+
+let LORDBLESS_FINANCE_ACTIVE_VIEW = "overview";
+
+
+function getFinancePaymentRequests() {
+
+    if (
+        window.LORDBLESS_PAYMENT_BRIDGE &&
+        typeof window.LORDBLESS_PAYMENT_BRIDGE.load === "function"
+    ) {
+        const data =
+            window.LORDBLESS_PAYMENT_BRIDGE.load();
+
+        return Array.isArray(data.paymentRequests)
+            ? data.paymentRequests
+            : [];
+    }
+
+    return Array.isArray(
+        window.LORDBLESS_PAYMENT_REQUESTS
+    )
+        ? window.LORDBLESS_PAYMENT_REQUESTS
+        : [];
+
+}
+
+
+/* =========================================
+   NORMALISE RICH PAYMENT REQUEST
+========================================= */
+
+function normaliseFinancePaymentRequest(
+    payload
+) {
+
+    const context =
+        window.LORDBLESS_FINANCE_PAYMENT_CONTEXT || {};
+
+    const items =
+        Array.isArray(payload.items)
+            ? payload.items
+            : [];
+
+    const itemNames =
+        items
+            .map(item => item.name)
+            .filter(Boolean);
+
+    const now =
+        new Date().toISOString();
+
+    return {
+
+        id:
+            payload.id ||
+            `PAY-${Date.now()}-${Math.random()
+                .toString(36)
+                .slice(2, 8)
+                .toUpperCase()}`,
+
+        reference:
+            payload.reference ||
+            payload.invoiceNumber ||
+            `LBC-PAY-${Date.now()}`,
+
+        invoiceNumber:
+            payload.invoiceNumber || null,
+
+        clientId:
+            payload.clientId ||
+            context.clientId ||
+            null,
+
+        clientName:
+            payload.client?.name ||
+            context.clientName ||
+            "Client",
+
+        transactionId:
+            payload.transactionId ||
+            payload.enquiryReference ||
+            context.transactionId ||
+            null,
+
+        transactionTitle:
+            context.transactionTitle ||
+            payload.enquiryReference ||
+            "Journey",
+
+        destination:
+            context.destination ||
+            "",
+
+        service:
+            context.service ||
+            null,
+
+        requestType:
+            itemNames.join(", ") ||
+            "Service Fee",
+
+        description:
+            payload.clientMessage ||
+            itemNames.join(", ") ||
+            "Payment Request",
+
+        amount:
+            Number(payload.total) || 0,
+
+        currency:
+            payload.primaryCurrency ||
+            "EUR",
+
+        requestedDate:
+            payload.createdAt ||
+            now,
+
+        dueDate:
+            payload.dueDate ||
+            null,
+
+        paymentInstructions:
+            payload.paymentInstructions ||
+            "",
+
+        internalNote:
+            payload.adminNote ||
+            "",
+
+        delivery: {
+            portal: true,
+            email:
+                payload.delivery?.email !== false,
+            whatsapp:
+                payload.delivery?.whatsapp !== false
+        },
+
+        status:
+            "requested",
+
+        verificationStatus:
+            "not_verified",
+
+        receiptId:
+            null,
+
+        createdAt:
+            payload.createdAt ||
+            now,
+
+        updatedAt:
+            now
+
+    };
+
+}
+
+
+/* =========================================
+   PAYMENT REQUEST CREATED
+========================================= */
+
+function bindFinancePaymentEvents() {
+
+    if (
+        window.__LORDBLESS_FINANCE_PAYMENT_EVENTS_BOUND
+    ) {
+        return;
+    }
+
+    window.__LORDBLESS_FINANCE_PAYMENT_EVENTS_BOUND =
+        true;
+
+
+    document.addEventListener(
+        "lordbless:payment-request-created",
+        function (event) {
+
+            const payload =
+                event.detail;
+
+            if (!payload) {
+                return;
+            }
+
+
+            const request =
+                normaliseFinancePaymentRequest(
+                    payload
+                );
+
+
+            window.LORDBLESS_FINANCE_PAYMENT_CONTEXT =
+                null;
+
+
+            if (
+                window.LORDBLESS_PAYMENT_BRIDGE &&
+                typeof window
+                    .LORDBLESS_PAYMENT_BRIDGE
+                    .savePaymentRequest ===
+                    "function"
+            ) {
+
+                window.LORDBLESS_PAYMENT_BRIDGE
+                    .savePaymentRequest(
+                        request
+                    );
+
+            }
+
+
+            if (
+                LORDBLESS_FINANCE_ACTIVE_VIEW ===
+                "verification"
+            ) {
+
+                renderFinanceView(
+                    "verification"
+                );
+
+            }
+
+        }
+    );
+
+
+    document.addEventListener(
+        "lordbless:payment-verified",
+        function () {
+
+            if (
+                LORDBLESS_FINANCE_ACTIVE_VIEW ===
+                "verification"
+            ) {
+
+                renderFinanceView(
+                    "verification"
+                );
+
+            }
+
+        }
+    );
+
+
+    document.addEventListener(
+        "lordbless:receipt-issued",
+        function () {
+
+            if (
+                LORDBLESS_FINANCE_ACTIVE_VIEW ===
+                "receipts"
+            ) {
+
+                renderFinanceView(
+                    "receipts"
+                );
+
+            }
+
+        }
+    );
+
+}
+
+
+/* =========================================
+   PAYMENT REQUEST SELECTOR
+========================================= */
+
+function openFinancePaymentRequest() {
+
+    const clients =
+        getAdminClients();
+
+    const container =
+        document.getElementById(
+            "finance-content"
+        );
+
+    if (
+        !container ||
+        !clients.length
+    ) {
+
+        alert(
+            "No clients are currently available."
+        );
+
+        return;
+
+    }
+
+
+    container.innerHTML = `
+
+        <div class="finance-view">
+
+            <div class="section-header">
+
+                <div>
+
+                    <p class="section-eyebrow">
+                        FINANCE
+                    </p>
+
+                    <h2>
+                        Request Payment
+                    </h2>
+
+                    <p class="section-description">
+                        Select the client and journey for this payment request.
+                    </p>
+
+                </div>
+
+            </div>
+
+
+            <div class="finance-content-card">
+
+                <div class="lbc-payment-form-grid">
+
+                    <div class="lbc-payment-form-group">
+
+                        <label for="finance-payment-client">
+                            Client
+                        </label>
+
+                        <select
+                            id="finance-payment-client"
+                        >
+
+                            <option value="">
+                                Select client
+                            </option>
+
+                            ${clients.map(client => `
+                                <option value="${escapeHTML(client.id)}">
+                                    ${escapeHTML(
+                                        client.name ||
+                                        client.fullName ||
+                                        client.id
+                                    )}
+                                </option>
+                            `).join("")}
+
+                        </select>
+
+                    </div>
+
+
+                    <div class="lbc-payment-form-group">
+
+                        <label for="finance-payment-journey">
+                            Journey
+                        </label>
+
+                        <select
+                            id="finance-payment-journey"
+                            disabled
+                        >
+
+                            <option value="">
+                                Select journey
+                            </option>
+
+                        </select>
+
+                    </div>
+
+                </div>
+
+
+                <div class="lbc-payment-actions">
+
+                    <button
+                        type="button"
+                        class="button button-secondary"
+                        id="finance-payment-cancel"
+                    >
+                        Cancel
+                    </button>
+
+                    <button
+                        type="button"
+                        class="button button-primary"
+                        id="finance-payment-continue"
+                        disabled
+                    >
+                        Continue
+                    </button>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    `;
+
+
+    const clientSelect =
+        document.getElementById(
+            "finance-payment-client"
+        );
+
+    const journeySelect =
+        document.getElementById(
+            "finance-payment-journey"
+        );
+
+    const continueButton =
+        document.getElementById(
+            "finance-payment-continue"
+        );
+
+    const cancelButton =
+        document.getElementById(
+            "finance-payment-cancel"
+        );
+
+
+    clientSelect.addEventListener(
+        "change",
+        function () {
+
+            const clientId =
+                clientSelect.value;
+
+            journeySelect.innerHTML = `
+                <option value="">
+                    Select journey
+                </option>
+            `;
+
+            journeySelect.disabled =
+                !clientId;
+
+            continueButton.disabled =
+                true;
+
+
+            if (!clientId) {
+                return;
+            }
+
+
+            const journeys =
+                getAdminClientJourneys(
+                    clientId
+                );
+
+
+            journeys.forEach(
+                journey => {
+
+                    const option =
+                        document.createElement(
+                            "option"
+                        );
+
+                    option.value =
+                        journey.id;
+
+                    option.textContent =
+                        journey.title ||
+                        journey.name ||
+                        journey.id;
+
+                    journeySelect.appendChild(
+                        option
+                    );
+
+                }
+            );
+
+        }
+    );
+
+
+    journeySelect.addEventListener(
+        "change",
+        function () {
+
+            continueButton.disabled =
+                !journeySelect.value;
+
+        }
+    );
+
+
+    cancelButton.addEventListener(
+        "click",
+        function () {
+
+            renderFinanceView(
+                "payments"
+            );
+
+        }
+    );
+
+
+    continueButton.addEventListener(
+        "click",
+        function () {
+
+            const clientId =
+                clientSelect.value;
+
+            const journeyId =
+                journeySelect.value;
+
+            const client =
+                clients.find(
+                    item =>
+                        item.id === clientId
+                );
+
+            const journey =
+                getAdminClientJourneys(
+                    clientId
+                ).find(
+                    item =>
+                        item.id === journeyId
+                );
+
+
+            if (
+                !client ||
+                !journey
+            ) {
+                return;
+            }
+
+
+            window.LORDBLESS_FINANCE_PAYMENT_CONTEXT = {
+
+                clientId:
+                    client.id,
+
+                clientName:
+                    client.name ||
+                    client.fullName ||
+                    "",
+
+                transactionId:
+                    journey.id,
+
+                transactionTitle:
+                    journey.title ||
+                    journey.name ||
+                    "Journey",
+
+                destination:
+                    journey.destination ||
+                    "",
+
+                service:
+                    journey.service ||
+                    null
+
+            };
+
+
+            if (
+                window.LORDBLESS_PAYMENT_REQUEST &&
+                typeof window
+                    .LORDBLESS_PAYMENT_REQUEST
+                    .render ===
+                    "function"
+            ) {
+
+                const enquiry = {
+
+                    id:
+                        journey.id,
+
+                    enquiry_reference:
+                        journey.id,
+
+                    reference:
+                        journey.id,
+
+                    client:
+                        client,
+
+                    clientName:
+                        client.name ||
+                        client.fullName ||
+                        "",
+
+                    email:
+                        client.email ||
+                        "",
+
+                    destination:
+                        journey.destination ||
+                        "",
+
+                    service:
+                        journey.service ||
+                        null,
+
+                    services:
+                        journey.service
+                            ? [journey.service]
+                            : []
+
+                };
+
+
+               window.LORDBLESS_PAYMENT_REQUEST
+    .render(
+        container,
+        client,
+        journey,
+        {
+            currency: "EUR"
+        }
+    );
+
+            } else {
+
+                alert(
+                    "Payment Request engine is not available."
+                );
+
+            }
+
+        }
+    );
+
+}
+
+
+/* =========================================
+   FINANCE SUB-VIEWS
+========================================= */
+
+function renderFinanceView(
+    view
+) {
+
+    LORDBLESS_FINANCE_ACTIVE_VIEW =
+        view;
+
+
+    const container =
+        document.getElementById(
+            "finance-content"
+        );
+
+    if (!container) {
+        return;
+    }
+
+
+    bindFinancePaymentEvents();
+
+
+    switch (view) {
+
+
+        /* =====================================
+           OVERVIEW
+        ===================================== */
+
+        case "overview":
+
+            if (
+                window.LORDBLESS_FINANCE_DASHBOARD &&
+                typeof window
+                    .LORDBLESS_FINANCE_DASHBOARD
+                    .render ===
+                    "function"
+            ) {
+
+                window.LORDBLESS_FINANCE_DASHBOARD
+                    .render(
+                        container,
+                        {}
+                    );
+
+            } else {
+
+                container.innerHTML = `
+
+                    <div class="empty-state">
+
+                        <h3>
+                            Finance Dashboard
+                        </h3>
+
+                        <p>
+                            Finance Dashboard could not be loaded.
+                        </p>
+
+                    </div>
+
+                `;
+
+            }
+
+            break;
+
+
+        /* =====================================
+           PAYMENTS
+        ===================================== */
+
+
+        case "payments": {
+
+            container.innerHTML = `
+
+                <div class="finance-view finance-payments-view">
+
+                    <div class="finance-payments-actionbar">
+
+                        <div></div>
+
+                        <button
+                            type="button"
+                            class="button button-primary"
+                            id="finance-request-payment"
+                        >
+                            + Request Payment
+                        </button>
+
+                    </div>
+
+
+                    <div
+                        id="finance-payments-engine"
+                        class="finance-payments-engine"
+                    ></div>
+
+                </div>
+
+            `;
+
+
+            const paymentsEngine =
+                document.getElementById(
+                    "finance-payments-engine"
+                );
+
+
+            if (
+                window.LORDBLESS_ADMIN_PAYMENTS &&
+                typeof window
+                    .LORDBLESS_ADMIN_PAYMENTS
+                    .render ===
+                    "function"
+            ) {
+
+                window.LORDBLESS_ADMIN_PAYMENTS
+                    .render(
+                        paymentsEngine,
+                        getAdminClients()
+                    );
+
+            } else {
+
+                paymentsEngine.innerHTML = `
+
+                    <div class="empty-state">
+
+                        <h3>
+                            Payments module could not be loaded.
+                        </h3>
+
+                    </div>
+
+                `;
+
+            }
+
+
+            const requestButton =
+                document.getElementById(
+                    "finance-request-payment"
+                );
+
+
+            if (requestButton) {
+
+                requestButton.addEventListener(
+                    "click",
+                    openFinancePaymentRequest
+                );
+
+            }
+
+
+            break;
+
+        }
+
+
+       /* =====================================
+           VERIFICATION
+        ===================================== */
+
+        case "verification": {
+
+            const requests =
+                getFinancePaymentRequests()
+                    .filter(
+                        request =>
+                            request &&
+                            request.status !==
+                                "cancelled" &&
+                            request.verificationStatus !==
+                                "verified"
+                    );
+
+
+            container.innerHTML = `
+
+                <div class="finance-view">
+
+                    <div class="section-header">
+
+                        <div>
+
+                            <p class="section-eyebrow">
+                                FINANCE VERIFICATION
+                            </p>
+
+                            <h2>
+                                Payment Verification
+                            </h2>
+
+                            <p class="section-description">
+                                Verify payments received before they are marked as paid.
+                            </p>
+
+                        </div>
+
+                    </div>
+
+
+                    ${
+                        requests.length
+                            ? `
+                                <div class="finance-content-card">
+
+                                    <div class="lbc-finance-client-table-wrap">
+
+                                        <table class="lbc-finance-client-table">
+
+                                            <thead>
+
+                                                <tr>
+                                                    <th>Reference</th>
+                                                    <th>Client</th>
+                                                    <th>Journey</th>
+                                                    <th>Amount</th>
+                                                    <th>Status</th>
+                                                    <th>Action</th>
+                                                </tr>
+
+                                            </thead>
+
+                                            <tbody>
+
+                                                ${requests.map(
+                                                    request => `
+
+                                                        <tr>
+
+                                                            <td>
+                                                                ${escapeHTML(
+                                                                    request.reference ||
+                                                                    request.invoiceNumber ||
+                                                                    request.id
+                                                                )}
+                                                            </td>
+
+                                                            <td>
+                                                                ${escapeHTML(
+                                                                    request.clientName ||
+                                                                    request.client?.name ||
+                                                                    "Client"
+                                                                )}
+                                                            </td>
+
+                                                            <td>
+                                                                ${escapeHTML(
+                                                                    request.transactionTitle ||
+                                                                    request.enquiryReference ||
+                                                                    "Journey"
+                                                                )}
+                                                            </td>
+
+                                                            <td>
+                                                                ${escapeHTML(
+                                                                    `${request.currency || "EUR"} ${Number(
+                                                                        request.amount ||
+                                                                        request.total ||
+                                                                        0
+                                                                    ).toFixed(2)}`
+                                                                )}
+                                                            </td>
+
+                                                            <td>
+                                                                ${escapeHTML(
+                                                                    request.status ||
+                                                                    "Requested"
+                                                                )}
+                                                            </td>
+
+                                                            <td>
+
+                                                                <button
+                                                                    type="button"
+                                                                    class="button button-primary"
+                                                                    data-finance-verify="${escapeHTML(
+                                                                        request.id
+                                                                    )}"
+                                                                >
+                                                                    Verify
+                                                                </button>
+
+                                                            </td>
+
+                                                        </tr>
+
+                                                    `
+                                                ).join("")}
+
+                                            </tbody>
+
+                                        </table>
+
+                                    </div>
+
+                                </div>
+                            `
+                            : `
+                                <div class="empty-state">
+
+                                    <h3>
+                                        No payments awaiting verification
+                                    </h3>
+
+                                    <p>
+                                        Verified payment requests will move to the payment history.
+                                    </p>
+
+                                </div>
+                            `
+                    }
+
+                </div>
+
+            `;
+
+
+            container
+                .querySelectorAll(
+                    "[data-finance-verify]"
+                )
+                .forEach(
+                    button => {
+
+                        button.addEventListener(
+                            "click",
+                            function () {
+
+                                const requestId =
+                                    button.dataset
+                                        .financeVerify;
+
+                                if (
+                                    window
+                                        .LORDBLESS_PAYMENT_VERIFICATION &&
+                                    typeof window
+                                        .LORDBLESS_PAYMENT_VERIFICATION
+                                        .render ===
+                                        "function"
+                                ) {
+
+                                    window
+                                        .LORDBLESS_PAYMENT_VERIFICATION
+                                        .render(
+                                            container,
+                                            requestId,
+                                            {
+                                                onClose:
+                                                    function () {
+                                                        renderFinanceView(
+                                                            "verification"
+                                                        );
+                                                    }
+                                            }
+                                        );
+
+                                }
+
+                            }
+                        );
+
+                    }
+                );
+
+            break;
+
+        }
+
+
+        /* =====================================
+           RECEIPTS
+        ===================================== */
+
+        case "receipts": {
+
+            const requests =
+                getFinancePaymentRequests()
+                    .filter(
+                        request =>
+                            request &&
+                            request.verificationStatus ===
+                                "verified" &&
+                            !request.receiptId
+                    );
+
+
+            container.innerHTML = `
+
+                <div class="finance-view">
+
+                    <div class="section-header">
+
+                        <div>
+
+                            <p class="section-eyebrow">
+                                FINANCE RECEIPTS
+                            </p>
+
+                            <h2>
+                                Receipts
+                            </h2>
+
+                            <p class="section-description">
+                                Issue official receipts for verified payments.
+                            </p>
+
+                        </div>
+
+                    </div>
+
+
+                    ${
+                        requests.length
+                            ? `
+                                <div class="finance-content-card">
+
+                                    <div class="lbc-finance-client-table-wrap">
+
+                                        <table class="lbc-finance-client-table">
+
+                                            <thead>
+
+                                                <tr>
+                                                    <th>Reference</th>
+                                                    <th>Client</th>
+                                                    <th>Amount</th>
+                                                    <th>Verified</th>
+                                                    <th>Action</th>
+                                                </tr>
+
+                                            </thead>
+
+                                            <tbody>
+
+                                                ${requests.map(
+                                                    request => `
+
+                                                        <tr>
+
+                                                            <td>
+                                                                ${escapeHTML(
+                                                                    request.reference ||
+                                                                    request.id
+                                                                )}
+                                                            </td>
+
+                                                            <td>
+                                                                ${escapeHTML(
+                                                                    request.clientName ||
+                                                                    "Client"
+                                                                )}
+                                                            </td>
+
+                                                            <td>
+                                                                ${escapeHTML(
+                                                                    `${request.currency || "EUR"} ${Number(
+                                                                        request.amount || 0
+                                                                    ).toFixed(2)}`
+                                                                )}
+                                                            </td>
+
+                                                            <td>
+                                                                Verified
+                                                            </td>
+
+                                                            <td>
+
+                                                                <button
+                                                                    type="button"
+                                                                    class="button button-primary"
+                                                                    data-finance-receipt="${escapeHTML(
+                                                                        request.id
+                                                                    )}"
+                                                                >
+                                                                    Issue Receipt
+                                                                </button>
+
+                                                            </td>
+
+                                                        </tr>
+
+                                                    `
+                                                ).join("")}
+
+                                            </tbody>
+
+                                        </table>
+
+                                    </div>
+
+                                </div>
+                            `
+                            : `
+                                <div class="empty-state">
+
+                                    <h3>
+                                        No receipts awaiting issuance
+                                    </h3>
+
+                                    <p>
+                                        Receipts become available after Finance verification.
+                                    </p>
+
+                                </div>
+                            `
+                    }
+
+                </div>
+
+            `;
+
+
+            container
+                .querySelectorAll(
+                    "[data-finance-receipt]"
+                )
+                .forEach(
+                    button => {
+
+                        button.addEventListener(
+                            "click",
+                            function () {
+
+                                const requestId =
+                                    button.dataset
+                                        .financeReceipt;
+
+                                if (
+                                    window
+                                        .LORDBLESS_RECEIPT_GENERATOR &&
+                                    typeof window
+                                        .LORDBLESS_RECEIPT_GENERATOR
+                                        .render ===
+                                        "function"
+                                ) {
+
+                                    window
+                                        .LORDBLESS_RECEIPT_GENERATOR
+                                        .render(
+                                            container,
+                                            requestId,
+                                            {
+                                                onIssued:
+                                                    function () {
+                                                        renderFinanceView(
+                                                            "receipts"
+                                                        );
+                                                    },
+
+                                                onClose:
+                                                    function () {
+                                                        renderFinanceView(
+                                                            "receipts"
+                                                        );
+                                                    }
+                                            }
+                                        );
+
+                                }
+
+                            }
+                        );
+
+                    }
+                );
+
+            break;
+
+        }
+
+
+        /* =====================================
+           REPORTS
+        ===================================== */
+
+        case "reports":
+
+            if (
+                window.LORDBLESS_PAYMENT_HISTORY &&
+                typeof window
+                    .LORDBLESS_PAYMENT_HISTORY
+                    .renderForAdmin ===
+                    "function"
+            ) {
+
+                window.LORDBLESS_PAYMENT_HISTORY
+                    .renderForAdmin(
+                        container,
+                        {}
+                    );
+
+            } else {
+
+                container.innerHTML = `
+
+                    <div class="empty-state">
+
+                        <h3>
+                            Financial Reports
+                        </h3>
+
+                        <p>
+                            Payment History could not be loaded.
+                        </p>
+
+                    </div>
+
+                `;
+
+            }
+
+            break;
+
+
+        default:
+
+            renderFinanceView(
+                "overview"
+            );
+
+    }
+
+}
+
+/* =========================================
+   VIEW ROUTER
+========================================= */
+
+function renderView(
+    view
+) {
+
+    state.currentView =
+        view;
+
+
+    const titles = {
+
+        dashboard:
+            "Dashboard",
+
+        enquiries:
+            "Enquiries",
+
+        clients:
+            "Clients",
+
+        followups:
+            "Follow-ups",
+
+                documents:
+            "Documents",
+
+        finance:
+            "Finance",
+
+        payments:
+            "Payments",
+
+        assessments:
+            "Assessments",
+
+        stories:
+            "Stories",
+
+        team:
+            "Team & Access",
+
+        settings:
+            "Settings"
+
+    };
+
+
+    pageTitle.textContent =
+        titles[view] ||
+        "Dashboard";
+
+
+    setActiveNavigation(
+        view
+    );
+
+
+    switch (view) {
+
+        case "dashboard":
+
+            renderDashboard();
+
+            break;
+
+
+        case "enquiries":
+
+            renderEnquiries();
+
+            break;
+
+
+        case "clients":
+
+            renderAdminClients();
+
+            break;
+
+
+        case "followups":
+
+            renderPlaceholder(
+                "Follow-ups",
+                "Follow-up management will appear here."
+            );
+
+            break;
+
+
+        
+        case "documents":
+
+            renderAdminDocuments();
+
+            break;
+
+        case "finance":
+
+            renderFinanceWorkspace();
+
+            break;
+
+
+        case "assessments":
+
+            renderPlaceholder(
+                "Assessments",
+                "Client assessments will appear here."
+            );
+
+            break;
+
+case "assessments":
+
+            renderPlaceholder(
+                "Assessments",
+                "Client assessments will appear here."
+            );
+
+            break;
+
+
+        case "stories":
+
+            renderPlaceholder(
+                "Stories",
+                "LORDBLESS Stories management will appear here."
+            );
+
+            break;
+
+
+        case "team":
+
+            renderTeamAccess();
+
+            break;
+
+
+        case "settings":
+
+            renderPlaceholder(
+                "Settings",
+                "Portal settings will appear here."
+            );
+
+            break;
+
+
+        default:
+
+            renderDashboard();
+
+    }
+
+}
+
+/* =========================================================
+   LORDBLESS ADMIN — CLIENTS WORKSPACE
+   MOCK / FRONTEND STAGE
+
+   PRINCIPLE:
+   One client collection. Other modules read from it.
+   Do not create duplicate client datasets.
+========================================================= */
+
+
+const LORDBLESS_ADMIN_CLIENT_STATE = {
+
+    search: "",
+
+    statusFilter: "all"
+
+};
+
+
+/* =========================================================
+   CLIENT DATA HELPERS
+========================================================= */
+
+function getAdminClients() {
+
+    if (
+        typeof LORDBLESS_ADMIN_DOCUMENT_DATA === "undefined"
+    ) {
+        return [];
+    }
+
+
+    const clients =
+        Array.isArray(
+            LORDBLESS_ADMIN_DOCUMENT_DATA.clients
+        )
+            ? LORDBLESS_ADMIN_DOCUMENT_DATA.clients
+            : [];
+
+    return clients.filter(
+        client =>
+            canCurrentAdminAccessClient(
+                client.id
+            )
+    );
+
+}
+
+
+/* =========================================================
+   DESK ACCESS BOUNDARY
+
+   A journey belongs to one operational desk.
+   Desk-level users may only see journeys and related
+   work belonging to their assigned desk.
+
+   Super Admin / All Desks users may see everything.
+
+   This is frontend/mock enforcement for the current stage.
+   Supabase RLS will become the real security boundary later.
+========================================================= */
+
+function getCurrentAdminDesk() {
+
+    const user =
+        getCurrentUser();
+
+    return user
+        ? user.desk || null
+        : null;
+
+}
+
+
+function currentAdminHasAllDeskAccess() {
+
+    const user =
+        getCurrentUser();
+
+    if (!user) {
+        return false;
+    }
+
+    const role =
+        String(user.role || "")
+            .toLowerCase();
+
+    const desk =
+        String(user.desk || "")
+            .toLowerCase();
+
+    return (
+        desk === "all" ||
+        desk === "all_desks" ||
+        desk === "all-desks" ||
+        role === "super_admin" ||
+        role === "super admin"
+    );
+
+}
+
+
+function getJourneyDeskId(
+    journey
+) {
+
+    if (!journey) {
+        return "unassigned";
+    }
+
+    /* Future journey records should carry desk directly. */
+
+    if (journey.desk) {
+        return journey.desk;
+    }
+
+    if (journey.deskId) {
+        return journey.deskId;
+    }
+
+    const destination =
+        String(journey.destination || "")
+            .trim()
+            .toLowerCase();
+
+    if (
+        destination === "canada" ||
+        destination === "usa" ||
+        destination === "us" ||
+        destination === "united states" ||
+        destination === "united states of america"
+    ) {
+        return "canada_us";
+    }
+
+    if (destination === "china") {
+        return "china";
+    }
+
+    const europeDestinations = [
+        "germany",
+        "france",
+        "united kingdom",
+        "uk",
+        "ireland",
+        "netherlands",
+        "belgium",
+        "austria",
+        "switzerland",
+        "italy",
+        "spain",
+        "portugal",
+        "poland",
+        "sweden",
+        "norway",
+        "denmark",
+        "finland",
+        "europe"
+    ];
+
+    if (
+        europeDestinations.includes(
+            destination
+        )
+    ) {
+        return "germany_europe";
+    }
+
+    return "unassigned";
+
+}
+
+
+function canCurrentAdminAccessJourney(
+    journey
+) {
+
+    if (!journey) {
+        return false;
+    }
+
+    if (currentAdminHasAllDeskAccess()) {
+        return true;
+    }
+
+    const currentDesk =
+        getCurrentAdminDesk();
+
+    return (
+        currentDesk &&
+        getJourneyDeskId(journey) === currentDesk
+    );
+
+}
+
+
+function getAdminClientJourneys(
+    clientId
+) {
+
+    if (
+        typeof LORDBLESS_DOCUMENT_JOURNEYS === "undefined"
+    ) {
+        return [];
+    }
+
+    return LORDBLESS_DOCUMENT_JOURNEYS
+        .filter(
+            journey =>
+                journey.clientId === clientId
+        )
+        .filter(
+            canCurrentAdminAccessJourney
+        );
+
+}
+
+
+function canCurrentAdminAccessClient(
+    clientId
+) {
+
+    if (currentAdminHasAllDeskAccess()) {
+        return true;
+    }
+
+    return (
+        getAdminClientJourneys(clientId).length > 0
+    );
+
+}
+
+
+function getAdminClientJourney(
+    clientId
+) {
+
+    return (
+        getAdminClientJourneys(clientId)[0]
+        || null
+    );
+
+}
+
+
+function getAdminClientDocuments(
+    clientId
+) {
+
+    if (
+        typeof LORDBLESS_ADMIN_DOCUMENT_DATA === "undefined"
+    ) {
+        return [];
+    }
+
+    const visibleJourneys =
+        getAdminClientJourneys(clientId);
+
+    const visibleJourneyIds =
+        new Set(
+            visibleJourneys.map(
+                journey => journey.id
+            )
+        );
+
+    return LORDBLESS_ADMIN_DOCUMENT_DATA.documents
+        .filter(
+            document =>
+                document.clientId === clientId
+        )
+        .filter(
+            document => {
+
+                if (currentAdminHasAllDeskAccess()) {
+                    return true;
+                }
+
+                if (document.transactionId) {
+                    return visibleJourneyIds.has(
+                        document.transactionId
+                    );
+                }
+
+                /* Client-level documents are reusable account assets. */
+                return canCurrentAdminAccessClient(
+                    clientId
+                );
+
+            }
+        );
+
+}
+
+
+function getAdminClientStatus(
+    clientId
+) {
+
+    const journey =
+        getAdminClientJourney(
+            clientId
+        );
+
+
+    if (!journey) {
+
+        return {
+            value: "inactive",
+            label: "No Active Journey"
+        };
+
+    }
+
+
+    return {
+        value: "active",
+        label: "Active"
+    };
+
+}
+
+
+/* =========================================================
+   CLIENT FILTERING
+========================================================= */
+
+function getFilteredAdminClients() {
+
+    const clients =
+        getAdminClients();
+
+    const search =
+        LORDBLESS_ADMIN_CLIENT_STATE.search
+            .trim()
+            .toLowerCase();
+
+    const statusFilter =
+        LORDBLESS_ADMIN_CLIENT_STATE.statusFilter;
+
+
+    return clients.filter(
+        client => {
+
+            const journey =
+                getAdminClientJourney(
+                    client.id
+                );
+
+            const status =
+                getAdminClientStatus(
+                    client.id
+                );
+
+
+            const searchableText = [
+
+                client.id,
+                client.name,
+                client.fullName,
+                client.email,
+
+                journey
+                    ? journey.id
+                    : "",
+
+                journey
+                    ? journey.title
+                    : "",
+
+                journey
+                    ? journey.destination
+                    : "",
+
+                journey
+                    ? journey.service
+                    : ""
+
+            ]
+                .join(" ")
+                .toLowerCase();
+
+
+            const matchesSearch =
+                !search ||
+                searchableText.includes(
+                    search
+                );
+
+
+            const matchesStatus =
+                statusFilter === "all" ||
+                status.value === statusFilter;
+
+
+            return (
+                matchesSearch &&
+                matchesStatus
+            );
+
+        }
+    );
+
+}
+
+
+/* =========================================================
+   CLIENTS PAGE
+========================================================= */
+
+function renderAdminClients() {
+
+    const clients =
+        getFilteredAdminClients();
+
+    const allClients =
+        getAdminClients();
+
+
+    appContent.innerHTML = `
+
+        <section class="admin-section lbc-clients-page">
+
+            <div class="section-header">
+
+                <div>
+
+                    <p class="section-eyebrow">
+                        CLIENT MANAGEMENT
+                    </p>
+
+                    <h2>
+                        Clients
+                    </h2>
+
+                    <p class="section-description">
+                        View and manage LORDBLESS client accounts.
+                    </p>
+
+                </div>
+
+                <div class="lbc-clients-count">
+                    ${clients.length} of ${allClients.length} clients
+                </div>
+
+            </div>
+
+
+            <div class="lbc-client-toolbar">
+
+                <div class="lbc-client-search">
+
+                    <input
+                        type="search"
+                        id="admin-client-search"
+                        placeholder="Search clients..."
+                        value="${escapeHTML(
+                            LORDBLESS_ADMIN_CLIENT_STATE.search
+                        )}"
+                        autocomplete="off"
+                        aria-label="Search clients"
+                    >
+
+                </div>
+
+
+                <div class="lbc-client-filter">
+
+                    <select
+                        id="admin-client-status-filter"
+                        aria-label="Filter clients by status"
+                    >
+
+                        <option
+                            value="all"
+                            ${
+                                LORDBLESS_ADMIN_CLIENT_STATE.statusFilter === "all"
+                                    ? "selected"
+                                    : ""
+                            }
+                        >
+                            All clients
+                        </option>
+
+                        <option
+                            value="active"
+                            ${
+                                LORDBLESS_ADMIN_CLIENT_STATE.statusFilter === "active"
+                                    ? "selected"
+                                    : ""
+                            }
+                        >
+                            Active
+                        </option>
+
+                        <option
+                            value="inactive"
+                            ${
+                                LORDBLESS_ADMIN_CLIENT_STATE.statusFilter === "inactive"
+                                    ? "selected"
+                                    : ""
+                            }
+                        >
+                            No active journey
+                        </option>
+
+                    </select>
+
+                </div>
+
+            </div>
+
+
+            <div class="lbc-client-list">
+
+                ${
+                    clients.length
+                        ? clients
+                            .map(
+                                renderAdminClientRow
+                            )
+                            .join("")
+                        : `
+                            <div class="lbc-client-empty">
+
+                                <h3>
+                                    No clients found
+                                </h3>
+
+                                <p>
+                                    Try a different search or filter.
+                                </p>
+
+                            </div>
+                        `
+                }
+
+            </div>
+
+        </section>
+
+    `;
+
+
+    setupAdminClientEvents();
+
+}
+
+
+/* =========================================================
+   CLIENT ROW
+========================================================= */
+
+function renderAdminClientRow(
+    client
+) {
+
+    const journey =
+        getAdminClientJourney(
+            client.id
+        );
+
+    const documents =
+        getAdminClientDocuments(
+            client.id
+        );
+
+    const status =
+        getAdminClientStatus(
+            client.id
+        );
+
+    const clientName =
+        client.name ||
+        client.fullName ||
+        "Unnamed Client";
+
+
+    return `
+
+        <article
+            class="lbc-client-row"
+            data-client-id="${escapeHTML(client.id)}"
+        >
+
+            <div class="lbc-client-primary">
+
+                <div class="lbc-client-avatar">
+                    ${escapeHTML(
+                        clientName
+                            .charAt(0)
+                            .toUpperCase()
+                    )}
+                </div>
+
+
+                <div>
+
+                    <h3 class="lbc-client-name">
+                        ${escapeHTML(clientName)}
+                    </h3>
+
+                    <div class="lbc-client-id">
+                        ${escapeHTML(client.id)}
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <div class="lbc-client-detail">
+
+                <span class="lbc-client-label">
+                    Email
+                </span>
+
+                <span>
+                    ${escapeHTML(client.email || "—")}
+                </span>
+
+            </div>
+
+
+            <div class="lbc-client-detail">
+
+                <span class="lbc-client-label">
+                    Journey
+                </span>
+
+                <span>
+                    ${
+                        journey
+                            ? escapeHTML(journey.title)
+                            : "—"
+                    }
+                </span>
+
+            </div>
+
+
+            <div class="lbc-client-detail">
+
+                <span class="lbc-client-label">
+                    Documents
+                </span>
+
+                <span>
+                    ${documents.length}
+                </span>
+
+            </div>
+
+
+            <div class="lbc-client-status">
+
+                <span
+                    class="lbc-client-status-badge ${status.value}"
+                >
+                    ${escapeHTML(status.label)}
+                </span>
+
+            </div>
+
+
+            <div class="lbc-client-action">
+
+                <button
+                    type="button"
+                    class="lbc-client-view-btn"
+                    data-client-id="${escapeHTML(client.id)}"
+                >
+                    View Client
+                </button>
+
+            </div>
+
+        </article>
+
+    `;
+
+}
+
+
+/* =========================================================
+   CLIENT EVENTS
+========================================================= */
+
+function setupAdminClientEvents() {
+
+    const searchInput =
+        document.getElementById(
+            "admin-client-search"
+        );
+
+    const statusFilter =
+        document.getElementById(
+            "admin-client-status-filter"
+        );
+
+
+    if (searchInput) {
+
+        searchInput.addEventListener(
+            "input",
+            event => {
+
+                LORDBLESS_ADMIN_CLIENT_STATE.search =
+                    event.target.value;
+
+                renderAdminClients();
+
+            }
+        );
+
+    }
+
+
+    if (statusFilter) {
+
+        statusFilter.addEventListener(
+            "change",
+            event => {
+
+                LORDBLESS_ADMIN_CLIENT_STATE.statusFilter =
+                    event.target.value;
+
+                renderAdminClients();
+
+            }
+        );
+
+    }
+
+
+    document
+        .querySelectorAll(
+            ".lbc-client-view-btn"
+        )
+        .forEach(
+            button => {
+
+                button.addEventListener(
+                    "click",
+                    () => {
+
+                        openAdminClient(
+                            button.dataset.clientId
+                        );
+
+                    }
+                );
+
+            }
+        );
+
+}
+
+
+/* =========================================================
+   CLIENT SUMMARY
+========================================================= */
+
+function openAdminClient(
+    clientId
+) {
+
+    const client =
+        getAdminClients().find(
+            item =>
+                item.id === clientId
+        );
+
+    if (!client) {
+        return;
+    }
+
+
+    const journeys =
+        getAdminClientJourneys(
+            client.id
+        );
+
+
+    const documents =
+        getAdminClientDocuments(
+            client.id
+        );
+
+
+    const modal =
+        document.getElementById(
+            "enquiry-modal"
+        );
+
+
+    const modalBody =
+        document.getElementById(
+            "modal-content"
+        );
+
+
+    if (!modal || !modalBody) {
+        return;
+    }
+
+
+    const accessLabel =
+        currentAdminHasAllDeskAccess()
+            ? "All Desks"
+            : (
+                typeof getDeskLabel === "function"
+                    ? getDeskLabel(
+                        getCurrentAdminDesk()
+                    )
+                    : getCurrentAdminDesk() ||
+                      "Assigned Desk"
+            );
+
+
+    /*
+     * Use the dedicated client-details component when it is available.
+     * The fallback keeps the current Admin Portal functional even when
+     * that optional component has not yet been added to index.html.
+     */
+
+    if (
+        typeof window.LORDBLESS_CLIENT_DETAILS !== "undefined" &&
+        typeof window.LORDBLESS_CLIENT_DETAILS.render === "function"
+    ) {
+
+        window.LORDBLESS_CLIENT_DETAILS.render(
+            modalBody,
+            {
+                client,
+                journeys,
+                documents,
+                accessLabel,
+                initialTab: "documents",
+
+                onOpenDocuments: targetClientId => {
+
+                    modal.classList.add(
+                        "hidden"
+                    );
+
+                    filterAdminDocumentsToClient(
+                        targetClientId
+                    );
+
+                }
+            }
+        );
+
+    } else {
+
+        renderAdminClientDocumentDetails(
+            modalBody,
+            client,
+            journeys,
+            documents,
+            accessLabel
+        );
+
+    }
+
+
+    modal.classList.remove(
+        "hidden"
+    );
+
+}
+
+
+/* =========================================================
+   CLIENT DOCUMENT DETAILS FALLBACK
+
+   Keeps the Admin Documents workflow usable without requiring
+   another file to be loaded. The dedicated clientDetails component
+   can replace this automatically when available.
+========================================================= */
+
+function renderAdminClientDocumentDetails(
+    container,
+    client,
+    journeys,
+    documents,
+    accessLabel
+) {
+
+    const clientRequests =
+        LORDBLESS_ADMIN_DOCUMENT_DATA.requests
+            .filter(
+                request =>
+                    request.clientId === client.id &&
+                    canCurrentAdminAccessDocumentRequest(request)
+            );
+
+    const reviewDocuments =
+        documents.filter(
+            document =>
+                document.status === "reviewing"
+        );
+
+    const approvedDocuments =
+        documents.filter(
+            document =>
+                document.status === "approved"
+        );
+
+    const attentionDocuments =
+        documents.filter(
+            getAdminDocumentAttention
+        );
+
+    container.innerHTML = `
+
+        <div class="lbc-client-document-details">
+
+            <div class="lbc-client-document-header">
+
+                <div>
+                    <p class="portal-eyebrow">CLIENT DOCUMENTS</p>
+                    <h2>${escapeHTML(client.name || client.fullName || "Client")}</h2>
+                    <p>${escapeHTML(client.id)} · ${escapeHTML(accessLabel)}</p>
+                </div>
+
+                <button
+                    type="button"
+                    class="lbc-document-btn lbc-document-btn-secondary"
+                    data-client-details-close="true"
+                >
+                    Close
+                </button>
+
+            </div>
+
+            <div class="lbc-client-document-meta">
+
+                <span>Email <strong>${escapeHTML(client.email || "—")}</strong></span>
+                <span>Journeys <strong>${journeys.length}</strong></span>
+                <span>Documents <strong>${documents.length}</strong></span>
+
+            </div>
+
+            <section class="lbc-client-document-section">
+                <div class="lbc-client-document-section-header">
+                    <div>
+                        <h3>Journeys</h3>
+                        <p>Documents are retained at client level and linked to the relevant journey when applicable.</p>
+                    </div>
+                </div>
+
+                <div class="lbc-client-document-journeys">
+                    ${
+                        journeys.length
+                            ? journeys.map(journey => `
+                                <article class="lbc-client-document-journey">
+                                    <strong>${escapeHTML(journey.title || "Journey")}</strong>
+                                    <span>${escapeHTML(journey.id)}</span>
+                                    <span>${escapeHTML(journey.destination || "—")}</span>
+                                    <span>${escapeHTML(getJourneyDeskId(journey))}</span>
+                                </article>
+                            `).join("")
+                            : `<div class="lbc-document-empty"><h4>No journeys</h4><p>No accessible journey is currently assigned to this client.</p></div>`
+                    }
+                </div>
+            </section>
+
+            ${renderAdminClientDocumentSection(
+                "Pending Review",
+                reviewDocuments,
+                "These documents were uploaded and are waiting for administrative review."
+            )}
+
+            ${renderAdminClientDocumentSection(
+                "Approved / Reusable",
+                approvedDocuments,
+                "Approved documents remain available in the client's permanent library."
+            )}
+
+            ${renderAdminClientDocumentSection(
+                "Attention",
+                attentionDocuments,
+                "These documents require attention because of rejection or expiry timing."
+            )}
+
+            <section class="lbc-client-document-section">
+                <div class="lbc-client-document-section-header">
+                    <div>
+                        <h3>Document Requests</h3>
+                        <p>Requests created by Admin for this client's journeys.</p>
+                    </div>
+                </div>
+
+                ${
+                    clientRequests.length
+                        ? `<div class="lbc-client-document-requests">${clientRequests.map(renderAdminClientRequestSummary).join("")}</div>`
+                        : `<div class="lbc-document-empty"><h4>No outstanding requests</h4><p>No document request is currently recorded for this client.</p></div>`
+                }
+            </section>
+
+        </div>
+
+    `;
+
+    container
+        .querySelector("[data-client-details-close]")
+        ?.addEventListener(
+            "click",
+            closeEnquiryModal
+        );
+
+    container
+        .querySelectorAll("[data-admin-document-review]")
+        .forEach(button => {
+            button.addEventListener(
+                "click",
+                () => {
+                    openAdminDocumentReview(
+                        button.dataset.adminDocumentReview
+                    );
+                }
+            );
+        });
+
+}
+
+
+function renderAdminClientDocumentSection(
+    title,
+    documents,
+    description
+) {
+
+    return `
+
+        <section class="lbc-client-document-section">
+
+            <div class="lbc-client-document-section-header">
+                <div>
+                    <h3>${escapeHTML(title)}</h3>
+                    <p>${escapeHTML(description)}</p>
+                </div>
+                <span>${documents.length}</span>
+            </div>
+
+            ${
+                documents.length
+                    ? `<div class="lbc-client-document-list">${documents.map(document => `
+                        <article class="lbc-client-document-item">
+                            <div>
+                                <strong>${escapeHTML(document.name)}</strong>
+                                <span>${escapeHTML(document.type || "Document")} · v${escapeHTML(document.version || 1)}</span>
+                                ${document.transactionTitle ? `<span>${escapeHTML(document.transactionTitle)}</span>` : ""}
+                            </div>
+                            <div class="lbc-client-document-item-side">
+                                <span class="lbc-document-status status-${escapeHTML(document.status)}">${escapeHTML(formatAdminDocumentStatus(document.status))}</span>
+                                ${document.expiryDate ? `<span>${escapeHTML(getAdminDocumentValidityStatus(document).label)}</span>` : ""}
+                                <button type="button" class="lbc-document-btn lbc-document-btn-secondary" data-admin-document-review="${escapeHTML(document.id)}">Review</button>
+                            </div>
+                        </article>
+                    `).join("")}</div>`
+                    : `<div class="lbc-document-empty"><h4>None</h4><p>No documents are currently in this section.</p></div>`
+            }
+
+        </section>
+
+    `;
+
+}
+
+
+function renderAdminClientRequestSummary(
+    request
+) {
+
+    return `
+        <article class="lbc-client-document-request">
+            <div>
+                <strong>${escapeHTML((request.documentNames || []).join(", "))}</strong>
+                <span>${escapeHTML(request.transactionTitle || "Journey not specified")}</span>
+                <span>Deadline: ${escapeHTML(formatDate(request.deadline))}</span>
+            </div>
+            <span class="lbc-document-status status-requested">${escapeHTML(request.status || "requested")}</span>
+        </article>
+    `;
+
+}
+
+
+/* =========================================================
+   DOCUMENT WORKSPACE STATE
+========================================================= */
+
+const LORDBLESS_ADMIN_DOCUMENT_STATE = {
+
+    search: "",
+
+    clientFilter: "all",
+
+    statusFilter: "all",
+
+    journeyFilter: "all"
+
+};
+
+
+/* =========================================================
+   LORDBLESS ADMIN — MULTI-CLIENT DOCUMENT WORKSPACE
+   MOCK / FRONTEND STAGE
+========================================================= */
+
+
+/* =========================================================
+   MULTI-CLIENT MOCK DATA
+========================================================= */
+
+const LORDBLESS_ADMIN_DOCUMENT_DATA = {
+
+    clients: [
+        {
+            id: "LBC-CLIENT-0001",
+            name: "KWAME MENSAH",
+            email: "kwame@example.com",
+            fullName: "KWAME MENSAH"
+        },
+        {
+            id: "LBC-CLIENT-0002",
+            name: "AMA BOATENG",
+            email: "ama@example.com",
+            fullName: "AMA BOATENG"
+        },
+        {
+            id: "LBC-CLIENT-0003",
+            name: "JOHN SMITH",
+            email: "john@example.com",
+            fullName: "JOHN SMITH"
+        },
+        {
+            id: "LBC-CLIENT-0004",
+            name: "ABENA MENSAH",
+            email: "abena@example.com",
+            fullName: "ABENA MENSAH"
+        },
+        {
+            id: "LBC-CLIENT-0005",
+            name: "DANIEL OWUSU",
+            email: "daniel@example.com",
+            fullName: "DANIEL OWUSU"
+        },
+        {
+            id: "LBC-CLIENT-0006",
+            name: "AKOSUA ADJEI",
+            email: "akosua@example.com",
+            fullName: "AKOSUA ADJEI"
+        },
+        {
+            id: "LBC-CLIENT-0007",
+            name: "MICHAEL ASANTE",
+            email: "michael@example.com",
+            fullName: "MICHAEL ASANTE"
+        },
+        {
+            id: "LBC-CLIENT-0008",
+            name: "GRACE OSEI",
+            email: "grace@example.com",
+            fullName: "GRACE OSEI"
+        },
+        {
+            id: "LBC-CLIENT-0009",
+            name: "SAMUEL FRIMPONG",
+            email: "samuel@example.com",
+            fullName: "SAMUEL FRIMPONG"
+        },
+        {
+            id: "LBC-CLIENT-0010",
+            name: "ESTHER BOATENG",
+            email: "esther@example.com",
+            fullName: "ESTHER BOATENG"
+        },
+        {
+            id: "LBC-CLIENT-0011",
+            name: "PATRICK ADU",
+            email: "patrick@example.com",
+            fullName: "PATRICK ADU"
+        },
+        {
+            id: "LBC-CLIENT-0012",
+            name: "RACHEL ASAMOAH",
+            email: "rachel@example.com",
+            fullName: "RACHEL ASAMOAH"
+        },
+        {
+            id: "LBC-CLIENT-0013",
+            name: "ERIC OPOKU",
+            email: "eric@example.com",
+            fullName: "ERIC OPOKU"
+        },
+        {
+            id: "LBC-CLIENT-0014",
+            name: "FELICIA ARTHUR",
+            email: "felicia@example.com",
+            fullName: "FELICIA ARTHUR"
+        },
+        {
+            id: "LBC-CLIENT-0015",
+            name: "ISAAC KUMI",
+            email: "isaac@example.com",
+            fullName: "ISAAC KUMI"
+        },
+        {
+            id: "LBC-CLIENT-0016",
+            name: "LINDA YAAH",
+            email: "linda@example.com",
+            fullName: "LINDA YAAH"
+        },
+        {
+            id: "LBC-CLIENT-0017",
+            name: "BENJAMIN QUAYE",
+            email: "benjamin@example.com",
+            fullName: "BENJAMIN QUAYE"
+        },
+        {
+            id: "LBC-CLIENT-0018",
+            name: "JOYCE DARKO",
+            email: "joyce@example.com",
+            fullName: "JOYCE DARKO"
+        },
+        {
+            id: "LBC-CLIENT-0019",
+            name: "RICHARD AMPOFO",
+            email: "richard@example.com",
+            fullName: "RICHARD AMPOFO"
+        },
+        {
+            id: "LBC-CLIENT-0020",
+            name: "PRISCILLA ASANTE",
+            email: "priscilla@example.com",
+            fullName: "PRISCILLA ASANTE"
+        }
+    ],
+
+    documents: [],
+
+    requests: [],
+
+    journeys: []
+
+};
+
+
+/* =========================================================
+   JOURNEY DATA
+========================================================= */
+
+const LORDBLESS_DOCUMENT_JOURNEYS = [
+
+    {
+        id: "LBC-2026-00021",
+        clientId: "LBC-CLIENT-0001",
+        title: "Germany Career Journey",
+        destination: "Germany",
+        service: "LORDBLESS GLOBAL CAREERS"
+    },
+
+    {
+        id: "LBC-2026-00022",
+        clientId: "LBC-CLIENT-0002",
+        title: "Germany Career Journey",
+        destination: "Germany",
+        service: "LORDBLESS GLOBAL CAREERS"
+    },
+
+    {
+        id: "LBC-2026-00023",
+        clientId: "LBC-CLIENT-0003",
+        title: "China Business Trip",
+        destination: "China",
+        service: "LORDBLESS BUSINESS"
+    },
+
+    {
+        id: "LBC-2026-00024",
+        clientId: "LBC-CLIENT-0004",
+        title: "UK Travel Journey",
+        destination: "United Kingdom",
+        service: "LORDBLESS TRAVEL"
+    },
+
+    {
+        id: "LBC-2026-00025",
+        clientId: "LBC-CLIENT-0005",
+        title: "Germany Career Journey",
+        destination: "Germany",
+        service: "LORDBLESS GLOBAL CAREERS"
+    },
+
+    {
+        id: "LBC-2026-00026",
+        clientId: "LBC-CLIENT-0006",
+        title: "Canada Career Journey",
+        destination: "Canada",
+        service: "LORDBLESS GLOBAL CAREERS"
+    },
+
+    {
+        id: "LBC-2026-00027",
+        clientId: "LBC-CLIENT-0007",
+        title: "China Business Trip",
+        destination: "China",
+        service: "LORDBLESS BUSINESS"
+    },
+
+    {
+        id: "LBC-2026-00028",
+        clientId: "LBC-CLIENT-0008",
+        title: "France Travel Journey",
+        destination: "France",
+        service: "LORDBLESS TRAVEL"
+    },
+
+    {
+        id: "LBC-2026-00029",
+        clientId: "LBC-CLIENT-0009",
+        title: "Germany Career Journey",
+        destination: "Germany",
+        service: "LORDBLESS GLOBAL CAREERS"
+    },
+
+    {
+        id: "LBC-2026-00030",
+        clientId: "LBC-CLIENT-0010",
+        title: "UK Travel Journey",
+        destination: "United Kingdom",
+        service: "LORDBLESS TRAVEL"
+    }
+
+];
+
+
+/* =========================================================
+   GENERATE MOCK DOCUMENTS
+========================================================= */
+
+function buildAdminDocument(
+    id,
+    clientId,
+    type,
+    name,
+    filename,
+    status,
+    expiryDate = null
+) {
+
+    const client =
+        LORDBLESS_ADMIN_DOCUMENT_DATA.clients.find(
+            item =>
+                item.id === clientId
+        );
+
+    const journey =
+        LORDBLESS_DOCUMENT_JOURNEYS.find(
+            item =>
+                item.clientId === clientId
+        );
+
+    return {
+
+        id,
+
+        clientId,
+
+        clientName:
+            client
+                ? client.name
+                : "Unknown Client",
+
+        type,
+
+        name,
+
+        filename,
+
+        status,
+
+        issueDate:
+            type === "passport"
+                ? "2021-12-16"
+                : null,
+
+        expiryDate,
+
+        isCurrent: true,
+
+        version: 1,
+
+        transactionId:
+            journey
+                ? journey.id
+                : null,
+
+        transactionTitle:
+            journey
+                ? journey.title
+                : null,
+
+        uploadedAt:
+            "2026-09-21",
+
+        approvedAt:
+            status === "approved"
+                ? "2026-09-21"
+                : null
+
+    };
+
+}
+
+
+/* =========================================================
+   BUILD REALISTIC MOCK DOCUMENT SET
+========================================================= */
+
+function initialiseAdminDocumentData() {
+
+    if (
+        LORDBLESS_ADMIN_DOCUMENT_DATA.documents.length
+    ) {
+
+        return;
+
+    }
+
+    const clients =
+        LORDBLESS_ADMIN_DOCUMENT_DATA.clients;
+
+
+    clients.forEach(
+        (client, index) => {
+
+            const number =
+                String(index + 1)
+                    .padStart(4, "0");
+
+
+            const passportExpiry =
+                index % 5 === 0
+                    ? "2026-10-15"
+                    : index % 5 === 1
+                        ? "2027-01-20"
+                        : "2028-04-12";
+
+
+            /*
+             * Passport
+             */
+
+            LORDBLESS_ADMIN_DOCUMENT_DATA.documents.push(
+
+                buildAdminDocument(
+                    `DOC-${number}-P`,
+                    client.id,
+                    "passport",
+                    "International Passport",
+                    `passport-${number}.pdf`,
+                    index % 4 === 0
+                        ? "approved"
+                        : "approved",
+                    passportExpiry
+                )
+
+            );
+
+
+            /*
+             * CV
+             */
+
+            LORDBLESS_ADMIN_DOCUMENT_DATA.documents.push(
+
+                buildAdminDocument(
+                    `DOC-${number}-C`,
+                    client.id,
+                    "cv",
+                    "Curriculum Vitae",
+                    `cv-${number}.pdf`,
+                    "approved"
+                )
+
+            );
+
+
+            /*
+             * Third document varies by client.
+             */
+
+            const thirdDocuments = [
+
+                [
+                    "professional_certificate",
+                    "Professional / Vocational Certificate"
+                ],
+
+                [
+                    "academic_certificate",
+                    "Academic Certificate / Degree"
+                ],
+
+                [
+                    "academic_transcript",
+                    "Academic Transcript"
+                ],
+
+                [
+                    "employment_certificate",
+                    "Employment Certificate / Experience Letter"
+                ],
+
+                [
+                    "bank_statement",
+                    "Bank Statement / Bank Letter"
+                ]
+
+            ];
+
+
+            const selected =
+                thirdDocuments[
+                    index %
+                    thirdDocuments.length
+                ];
+
+
+            const thirdStatus =
+                index % 4 === 0
+                    ? "reviewing"
+                    : index % 4 === 1
+                        ? "approved"
+                        : index % 4 === 2
+                            ? "approved"
+                            : "rejected";
+
+
+            LORDBLESS_ADMIN_DOCUMENT_DATA.documents.push(
+
+                buildAdminDocument(
+                    `DOC-${number}-3`,
+                    client.id,
+                    selected[0],
+                    selected[1],
+                    `${selected[0]}-${number}.pdf`,
+                    thirdStatus
+                )
+
+            );
+
+
+            /*
+             * Fourth document for selected clients.
+             */
+
+            if (
+                index % 2 === 0
+            ) {
+
+                LORDBLESS_ADMIN_DOCUMENT_DATA.documents.push(
+
+                    buildAdminDocument(
+                        `DOC-${number}-4`,
+                        client.id,
+                        "proof_of_address",
+                        "Proof of Address",
+                        `proof-of-address-${number}.pdf`,
+                        index % 3 === 0
+                            ? "reviewing"
+                            : "approved"
+                    )
+
+                );
+
+            }
+
+        }
+    );
+
+
+    /*
+     * Existing request-style records.
+     */
+
+    LORDBLESS_ADMIN_DOCUMENT_DATA.requests = [
+
+        {
+            id: "DOCREQ-0001",
+            clientId: "LBC-CLIENT-0001",
+            clientName: "KWAME MENSAH",
+            transactionId: "LBC-2026-00021",
+            transactionTitle: "Germany Career Journey",
+            documentNames: [
+                "Academic Certificate / Degree"
+            ],
+            status: "requested",
+            deadline: "2026-09-30",
+            message:
+                "Please upload your academic certificate / degree for your Germany career journey."
+        },
+
+        {
+            id: "DOCREQ-0002",
+            clientId: "LBC-CLIENT-0004",
+            clientName: "ABENA MENSAH",
+            transactionId: "LBC-2026-00024",
+            transactionTitle: "UK Travel Journey",
+            documentNames: [
+                "Bank Statement / Bank Letter",
+                "Travel Insurance"
+            ],
+            status: "requested",
+            deadline: "2026-09-28",
+            message:
+                "Please provide the requested financial and travel documents."
+        },
+
+        {
+            id: "DOCREQ-0003",
+            clientId: "LBC-CLIENT-0007",
+            clientName: "MICHAEL ASANTE",
+            transactionId: "LBC-2026-00027",
+            transactionTitle: "China Business Trip",
+            documentNames: [
+                "Business Registration / Incorporation Document"
+            ],
+            status: "completed",
+            deadline: "2026-09-18",
+            message:
+                "Business registration document received and approved."
+        },
+
+        {
+            id: "DOCREQ-0004",
+            clientId: "LBC-CLIENT-0010",
+            clientName: "ESTHER BOATENG",
+            transactionId: "LBC-2026-00030",
+            transactionTitle: "UK Travel Journey",
+            documentNames: [
+                "Invitation Letter"
+            ],
+            status: "requested",
+            deadline: "2026-10-02",
+            message:
+                "Please upload the invitation letter for your journey."
+        }
+
+    ];
+
+}
+
+
+function canCurrentAdminAccessDocument(
+    document
+) {
+
+    if (!document) {
+        return false;
+    }
+
+    if (currentAdminHasAllDeskAccess()) {
+        return true;
+    }
+
+    if (document.transactionId) {
+
+        const journey =
+            typeof LORDBLESS_DOCUMENT_JOURNEYS !== "undefined"
+                ? LORDBLESS_DOCUMENT_JOURNEYS.find(
+                    item =>
+                        item.id === document.transactionId
+                )
+                : null;
+
+        return canCurrentAdminAccessJourney(
+            journey
+        );
+
+    }
+
+    /* Client-level documents are reusable account assets. */
+
+    return canCurrentAdminAccessClient(
+        document.clientId
+    );
+
+}
+
+
+function canCurrentAdminAccessDocumentRequest(
+    request
+) {
+
+    if (!request) {
+        return false;
+    }
+
+    if (currentAdminHasAllDeskAccess()) {
+        return true;
+    }
+
+    if (request.transactionId) {
+
+        const journey =
+            typeof LORDBLESS_DOCUMENT_JOURNEYS !== "undefined"
+                ? LORDBLESS_DOCUMENT_JOURNEYS.find(
+                    item =>
+                        item.id === request.transactionId
+                )
+                : null;
+
+        return canCurrentAdminAccessJourney(
+            journey
+        );
+
+    }
+
+    return canCurrentAdminAccessClient(
+        request.clientId
+    );
+
+}
+
+
+/* Public bridge for other admin components that need the same\n   desk boundary. There is deliberately one access policy. */
+
+window.LORDBLESS_ADMIN_ACCESS = {
+
+    getCurrentDesk:
+        getCurrentAdminDesk,
+
+    hasAllDeskAccess:
+        currentAdminHasAllDeskAccess,
+
+    getJourneyDesk:
+        getJourneyDeskId,
+
+    getJourneyDeskLabel:
+        journey => {
+
+            const deskId =
+                getJourneyDeskId(journey);
+
+            const labels = {
+                canada_us:
+                    "Canada & U.S. Desk",
+                germany_europe:
+                    "Germany & Europe Desk",
+                china:
+                    "China Desk",
+                unassigned:
+                    "Unassigned"
+            };
+
+            return labels[deskId] || deskId;
+
+        },
+
+    canAccessJourney:
+        canCurrentAdminAccessJourney,
+
+    canAccessClient:
+        canCurrentAdminAccessClient,
+
+    canAccessDocument:
+        canCurrentAdminAccessDocument,
+
+    canAccessDocumentRequest:
+        canCurrentAdminAccessDocumentRequest,
+
+    getVisibleClients:
+        getAdminClients,
+
+    getVisibleJourneys:
+        getAdminClientJourneys,
+
+    getVisibleDocuments:
+        getAdminClientDocuments
+
+};
+
+
+/* =========================================================
+   MAIN DOCUMENT VIEW
+   LORDBLESS ADMIN — DOCUMENT WORKSPACE
+
+   Permanent client document library + journey-aware requests.
+   Frontend/mock stage. Supabase/RLS will become the real
+   security boundary later.
+========================================================= */
+
+function getAdminDocumentWorkspaceData() {
+
+    initialiseAdminDocumentData();
+
+    const documents =
+        Array.isArray(LORDBLESS_ADMIN_DOCUMENT_DATA.documents)
+            ? LORDBLESS_ADMIN_DOCUMENT_DATA.documents.filter(
+                canCurrentAdminAccessDocument
+            )
+            : [];
+
+    const requests =
+        Array.isArray(LORDBLESS_ADMIN_DOCUMENT_DATA.requests)
+            ? LORDBLESS_ADMIN_DOCUMENT_DATA.requests.filter(
+                canCurrentAdminAccessDocumentRequest
+            )
+            : [];
+
+    const clients =
+        Array.isArray(LORDBLESS_ADMIN_DOCUMENT_DATA.clients)
+            ? LORDBLESS_ADMIN_DOCUMENT_DATA.clients.filter(
+                client => canCurrentAdminAccessClient(client.id)
+            )
+            : [];
+
+    return {
+        documents,
+        requests,
+        clients
+    };
+}
+
+
+function getFilteredAdminDocuments() {
+
+    const data = getAdminDocumentWorkspaceData();
+
+    const search =
+        String(LORDBLESS_ADMIN_DOCUMENT_STATE.search || "")
+            .trim()
+            .toLowerCase();
+
+    const clientFilter =
+        LORDBLESS_ADMIN_DOCUMENT_STATE.clientFilter || "all";
+
+    const statusFilter =
+        LORDBLESS_ADMIN_DOCUMENT_STATE.statusFilter || "all";
+
+    const journeyFilter =
+        LORDBLESS_ADMIN_DOCUMENT_STATE.journeyFilter || "all";
+
+    return data.documents.filter(document => {
+
+        const searchable = [
+            document.id,
+            document.name,
+            document.filename,
+            document.clientName,
+            document.clientId,
+            document.transactionId,
+            document.transactionTitle,
+            document.type
+        ]
+            .filter(Boolean)
+            .join(" ")
+            .toLowerCase();
+
+        const matchesSearch =
+            !search || searchable.includes(search);
+
+        const matchesClient =
+            clientFilter === "all" ||
+            document.clientId === clientFilter;
+
+        const matchesStatus =
+            statusFilter === "all" ||
+            document.status === statusFilter;
+
+        const matchesJourney =
+            journeyFilter === "all" ||
+            document.transactionId === journeyFilter;
+
+        return (
+            matchesSearch &&
+            matchesClient &&
+            matchesStatus &&
+            matchesJourney
+        );
+    });
+}
+
+
+function renderAdminDocuments() {
+
+    try {
+
+        const data = getAdminDocumentWorkspaceData();
+
+        const documents = getFilteredAdminDocuments();
+
+        const reviewing =
+            documents.filter(
+                document => document.status === "reviewing"
+            );
+
+        const requested =
+            data.requests.filter(
+                request => request.status === "requested"
+            );
+
+        const approved =
+            data.documents.filter(
+                document => document.status === "approved"
+            );
+
+        const attention =
+            data.documents.filter(
+                getAdminDocumentAttention
+            );
+
+        const journeys =
+            Array.isArray(LORDBLESS_DOCUMENT_JOURNEYS)
+                ? LORDBLESS_DOCUMENT_JOURNEYS.filter(
+                    canCurrentAdminAccessJourney
+                )
+                : [];
+
+        const clientOptions = data.clients
+            .map(client => `
+                <option
+                    value="${escapeHTML(client.id)}"
+                    ${
+                        LORDBLESS_ADMIN_DOCUMENT_STATE.clientFilter === client.id
+                            ? "selected"
+                            : ""
+                    }
+                >
+                    ${escapeHTML(client.name || client.fullName || client.id)}
+                </option>
+            `)
+            .join("");
+
+        const journeyOptions = journeys
+            .map(journey => `
+                <option
+                    value="${escapeHTML(journey.id)}"
+                    ${
+                        LORDBLESS_ADMIN_DOCUMENT_STATE.journeyFilter === journey.id
+                            ? "selected"
+                            : ""
+                    }
+                >
+                    ${escapeHTML(journey.title || journey.id)}
+                </option>
+            `)
+            .join("");
+
+        appContent.innerHTML = `
+
+            <div class="lbc-document-workspace">
+
+                <div class="lbc-document-header">
+
+                    <div class="lbc-document-header-content">
+
+                        <p class="portal-eyebrow">
+                            DOCUMENT MANAGEMENT
+                        </p>
+
+                        <h2>Documents</h2>
+
+                        <p>
+                            Review, track and manage permanent client documents
+                            and journey-specific document requests.
+                        </p>
+
+                    </div>
+
+                    <div class="lbc-document-header-actions">
+
+                        <button
+                            type="button"
+                            id="admin-create-document-request"
+                            class="lbc-document-btn lbc-document-btn-primary"
+                        >
+                            + Request Document
+                        </button>
+
+                    </div>
+
+                </div>
+
+
+                <div class="lbc-document-summary-grid">
+
+                    ${adminDocumentSummaryCard(
+                        "To Review",
+                        reviewing.length,
+                        "Documents awaiting review"
+                    )}
+
+                    ${adminDocumentSummaryCard(
+                        "Requested",
+                        requested.length,
+                        "Open document requests"
+                    )}
+
+                    ${adminDocumentSummaryCard(
+                        "Approved",
+                        approved.length,
+                        "Approved reusable documents"
+                    )}
+
+                    ${adminDocumentSummaryCard(
+                        "Attention",
+                        attention.length,
+                        "Expiry or document issues"
+                    )}
+
+                </div>
+
+
+                <section class="lbc-document-section">
+
+                    <div class="lbc-document-section-header">
+
+                        <div class="lbc-document-section-title">
+                            <h3>Document Review Queue</h3>
+                            <span>${reviewing.length}</span>
+                        </div>
+
+                    </div>
+
+                    <div id="admin-document-review-container">
+                        ${renderAdminDocumentReviewTable(reviewing)}
+                    </div>
+
+                </section>
+
+
+                <section class="lbc-document-section">
+
+                    <div class="lbc-document-section-header">
+
+                        <div class="lbc-document-section-title">
+                            <h3>Document Library</h3>
+                            <span>${documents.length}</span>
+                        </div>
+
+                    </div>
+
+                    <div class="lbc-document-toolbar">
+
+                        <div class="lbc-document-toolbar-left">
+
+                            <div class="lbc-document-search">
+                                <input
+                                    type="search"
+                                    id="admin-document-search"
+                                    placeholder="Search documents, clients or journeys..."
+                                    value="${escapeHTML(LORDBLESS_ADMIN_DOCUMENT_STATE.search || "")}"
+                                    autocomplete="off"
+                                    aria-label="Search documents"
+                                >
+                            </div>
+
+                        </div>
+
+                        <div class="lbc-document-toolbar-right">
+
+                            <select
+                                id="admin-document-client-filter"
+                                class="lbc-document-filter"
+                                aria-label="Filter by client"
+                            >
+                                <option value="all">All clients</option>
+                                ${clientOptions}
+                            </select>
+
+                            <select
+                                id="admin-document-status-filter"
+                                class="lbc-document-filter"
+                                aria-label="Filter by document status"
+                            >
+                                <option
+                                    value="all"
+                                    ${LORDBLESS_ADMIN_DOCUMENT_STATE.statusFilter === "all" ? "selected" : ""}
+                                >All statuses</option>
+                                <option
+                                    value="reviewing"
+                                    ${LORDBLESS_ADMIN_DOCUMENT_STATE.statusFilter === "reviewing" ? "selected" : ""}
+                                >Under review</option>
+                                <option
+                                    value="approved"
+                                    ${LORDBLESS_ADMIN_DOCUMENT_STATE.statusFilter === "approved" ? "selected" : ""}
+                                >Approved</option>
+                                <option
+                                    value="rejected"
+                                    ${LORDBLESS_ADMIN_DOCUMENT_STATE.statusFilter === "rejected" ? "selected" : ""}
+                                >Rejected</option>
+                            </select>
+
+                            <select
+                                id="admin-document-journey-filter"
+                                class="lbc-document-filter"
+                                aria-label="Filter by journey"
+                            >
+                                <option value="all">All journeys</option>
+                                ${journeyOptions}
+                            </select>
+
+                        </div>
+
+                    </div>
+
+                    <div id="admin-document-library-container">
+                        ${renderAdminDocumentLibraryTable(documents)}
+                    </div>
+
+                </section>
+
+
+                <section class="lbc-document-section">
+
+                    <div class="lbc-document-section-header">
+
+                        <div class="lbc-document-section-title">
+                            <h3>Document Requests</h3>
+                            <span>${data.requests.length}</span>
+                        </div>
+
+                    </div>
+
+                    <div id="admin-document-request-container">
+                        ${renderAdminDocumentRequests(data.requests)}
+                    </div>
+
+                </section>
+
+
+                <section class="lbc-document-section">
+
+                    <div class="lbc-document-section-header">
+
+                        <div class="lbc-document-section-title">
+                            <h3>Client Document Overview</h3>
+                            <span>${data.clients.length}</span>
+                        </div>
+
+                    </div>
+
+                    <div
+                        class="lbc-document-table-wrapper"
+                        id="admin-client-document-container"
+                    >
+                        ${renderAdminClientDocumentTable(data.clients, data.documents)}
+                    </div>
+
+                </section>
+
+            </div>
+
+        `;
+
+        attachAdminDocumentWorkspaceEvents();
+
+    } catch (error) {
+
+        console.error(
+            "LORDBLESS Documents workspace failed to render:",
+            error
+        );
+
+        appContent.innerHTML = `
+            <section class="admin-section">
+                <div class="lbc-document-empty">
+                    <div class="lbc-document-empty-icon">!</div>
+                    <h4>Documents could not be loaded</h4>
+                    <p>
+                        The Documents workspace encountered an error.
+                        Please refresh the portal and try again.
+                    </p>
+                </div>
+            </section>
+        `;
+
+    }
+}
+
+
+/* =========================================================
+   SUMMARY CARD
+========================================================= */
+
+function adminDocumentSummaryCard(
+    label,
+    value,
+    note
+) {
+
+    return `
+        <article class="lbc-document-summary-card">
+            <div class="lbc-document-summary-label">
+                ${escapeHTML(label)}
+            </div>
+            <div class="lbc-document-summary-value">
+                ${escapeHTML(String(value))}
+            </div>
+            <div class="lbc-document-summary-note">
+                ${escapeHTML(note)}
+            </div>
+        </article>
+    `;
+}
+
+
+/* =========================================================
+   REVIEW QUEUE
+========================================================= */
+
+function renderAdminDocumentReviewTable(documents) {
+
+    if (!documents.length) {
+        return `
+            <div class="lbc-document-empty">
+                <div class="lbc-document-empty-icon">✓</div>
+                <h4>Review queue is clear</h4>
+                <p>
+                    There are currently no client documents awaiting administrative review.
+                </p>
+            </div>
+        `;
+    }
+
+    return `
+        <div class="lbc-document-table-wrapper">
+            <table class="lbc-document-table">
+                <thead>
+                    <tr>
+                        <th>Document</th>
+                        <th>Client</th>
+                        <th>Journey</th>
+                        <th>Uploaded</th>
+                        <th>Status</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${documents.map(document => `
+                        <tr>
+                            <td>
+                                <div class="lbc-document-document-name">
+                                    ${escapeHTML(document.name || "Document")}
+                                </div>
+                                <div class="lbc-document-secondary">
+                                    ${escapeHTML(document.filename || document.id || "—")}
+                                </div>
+                            </td>
+                            <td>
+                                <div class="lbc-document-client-name">
+                                    ${escapeHTML(document.clientName || "Unknown client")}
+                                </div>
+                                <div class="lbc-document-secondary">
+                                    ${escapeHTML(document.clientId || "—")}
+                                </div>
+                            </td>
+                            <td>
+                                ${escapeHTML(document.transactionTitle || "Client library")}
+                            </td>
+                            <td>
+                                ${formatDate(document.uploadedAt)}
+                            </td>
+                            <td>
+                                <span class="lbc-document-status status-reviewing">
+                                    Under Review
+                                </span>
+                            </td>
+                            <td>
+                                <button
+                                    type="button"
+                                    class="lbc-document-btn lbc-document-btn-primary admin-document-review-btn"
+                                    data-document-id="${escapeHTML(document.id)}"
+                                >
+                                    Review
+                                </button>
+                            </td>
+                        </tr>
+                    `).join("")}
+                </tbody>
+            </table>
+        </div>
+    `;
+}
+
+
+/* =========================================================
+   DOCUMENT LIBRARY
+========================================================= */
+
+function getAdminDocumentStatusLabel(status) {
+
+    const labels = {
+        reviewing: "Under Review",
+        approved: "Approved",
+        rejected: "Rejected",
+        pending: "Pending"
+    };
+
+    return labels[status] || "Unknown";
+}
+
+
+function getAdminDocumentStatusClass(status) {
+
+    const classes = {
+        reviewing: "status-reviewing",
+        approved: "status-approved",
+        rejected: "status-rejected",
+        pending: "status-pending"
+    };
+
+    return classes[status] || "";
+}
+
+
+function renderAdminDocumentLibraryTable(documents) {
+
+    if (!documents.length) {
+        return `
+            <div class="lbc-document-empty">
+                <div class="lbc-document-empty-icon">⌕</div>
+                <h4>No documents found</h4>
+                <p>
+                    Adjust the search or filters to view other documents.
+                </p>
+            </div>
+        `;
+    }
+
+    return `
+        <div class="lbc-document-table-wrapper">
+            <table class="lbc-document-table">
+                <thead>
+                    <tr>
+                        <th>Document</th>
+                        <th>Client</th>
+                        <th>Journey</th>
+                        <th>Status</th>
+                        <th>Validity</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${documents.map(document => {
+
+                        const validity =
+                            getAdminDocumentValidityStatus(document);
+
+                        return `
+                            <tr>
+                                <td>
+                                    <div class="lbc-document-document-name">
+                                        ${escapeHTML(document.name || "Document")}
+                                    </div>
+                                    <div class="lbc-document-secondary">
+                                        ${escapeHTML(document.filename || document.id || "—")}
+                                    </div>
+                                </td>
+
+                                <td>
+                                    <div class="lbc-document-client-name">
+                                        ${escapeHTML(document.clientName || "Unknown client")}
+                                    </div>
+                                    <div class="lbc-document-secondary">
+                                        ${escapeHTML(document.clientId || "—")}
+                                    </div>
+                                </td>
+
+                                <td>
+                                    ${escapeHTML(document.transactionTitle || "Client library")}
+                                </td>
+
+                                <td>
+                                    <span class="lbc-document-status ${getAdminDocumentStatusClass(document.status)}">
+                                        ${escapeHTML(getAdminDocumentStatusLabel(document.status))}
+                                    </span>
+                                </td>
+
+                                <td>
+                                    <span class="lbc-document-status ${validity.value === "normal" ? "status-approved" : "status-rejected"}">
+                                        ${escapeHTML(validity.label)}
+                                    </span>
+                                </td>
+
+                                <td>
+                                    <button
+                                        type="button"
+                                        class="lbc-document-btn lbc-document-btn-secondary admin-document-view-btn"
+                                        data-document-id="${escapeHTML(document.id)}"
+                                    >
+                                        View
+                                    </button>
+                                </td>
+                            </tr>
+                        `;
+                    }).join("")}
+                </tbody>
+            </table>
+        </div>
+    `;
+}
+
+
+/* =========================================================
+   DOCUMENT REQUESTS
+========================================================= */
+
+function renderAdminDocumentRequests(requests) {
+
+    if (!requests.length) {
+        return `
+            <div class="lbc-document-empty">
+                <div class="lbc-document-empty-icon">✓</div>
+                <h4>No document requests</h4>
+                <p>
+                    There are currently no document requests visible to this desk.
+                </p>
+            </div>
+        `;
+    }
+
+    return `
+        <div class="lbc-document-request-grid">
+            ${requests.map(request => `
+                <article class="lbc-document-request-card">
+
+                    <div class="lbc-document-request-header">
+                        <div>
+                            <div class="lbc-document-request-title">
+                                ${escapeHTML(request.documentNames?.join(", ") || "Document Request")}
+                            </div>
+                            <div class="lbc-document-request-client">
+                                ${escapeHTML(request.clientName || request.clientId || "Unknown client")}
+                            </div>
+                        </div>
+
+                        <span class="lbc-document-status ${request.status === "completed" ? "status-approved" : "status-reviewing"}">
+                            ${escapeHTML(request.status || "requested")}
+                        </span>
+                    </div>
+
+                    <div class="lbc-document-request-meta-row">
+                        <div class="lbc-document-request-meta">
+                            <span class="lbc-document-request-meta-label">Journey</span>
+                            <span class="lbc-document-request-meta-value">
+                                ${escapeHTML(request.transactionTitle || request.transactionId || "—")}
+                            </span>
+                        </div>
+
+                        <div class="lbc-document-request-meta">
+                            <span class="lbc-document-request-meta-label">Deadline</span>
+                            <span class="lbc-document-request-meta-value">
+                                ${formatDate(request.deadline)}
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="lbc-document-request-message">
+                        ${escapeHTML(request.message || "No additional instructions.")}
+                    </div>
+
+                    <div class="lbc-document-card-actions">
+                        <button
+                            type="button"
+                            class="lbc-document-btn lbc-document-btn-secondary admin-document-request-view-btn"
+                            data-request-id="${escapeHTML(request.id)}"
+                        >
+                            View Request
+                        </button>
+                    </div>
+
+                </article>
+            `).join("")}
+        </div>
+    `;
+}
+
+
+/* =========================================================
+   CLIENT DOCUMENT OVERVIEW
+========================================================= */
+
+function renderAdminClientDocumentTable(clients, documents) {
+
+    if (!clients.length) {
+        return `
+            <div class="lbc-document-empty">
+                <div class="lbc-document-empty-icon">—</div>
+                <h4>No clients available</h4>
+                <p>No clients are currently visible to this desk.</p>
+            </div>
+        `;
+    }
+
+    return `
+        <table class="lbc-document-table">
+            <thead>
+                <tr>
+                    <th>Client</th>
+                    <th>Journey</th>
+                    <th>Documents</th>
+                    <th>Attention</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${clients.map(client => {
+
+                    const clientDocuments = documents.filter(
+                        document => document.clientId === client.id
+                    );
+
+                    const clientAttention = clientDocuments.filter(
+                        getAdminDocumentAttention
+                    ).length;
+
+                    const journey =
+                        getAdminClientJourney(client.id);
+
+                    return `
+                        <tr>
+                            <td>
+                                <div class="lbc-document-client-name">
+                                    ${escapeHTML(client.name || client.fullName || client.id)}
+                                </div>
+                                <div class="lbc-document-secondary">
+                                    ${escapeHTML(client.id)}
+                                </div>
+                            </td>
+
+                            <td>
+                                ${escapeHTML(journey?.title || "—")}
+                            </td>
+
+                            <td>
+                                ${clientDocuments.length}
+                            </td>
+
+                            <td>
+                                ${clientAttention}
+                            </td>
+
+                            <td>
+                                <button
+                                    type="button"
+                                    class="lbc-document-btn lbc-document-btn-secondary admin-client-documents-btn"
+                                    data-client-id="${escapeHTML(client.id)}"
+                                >
+                                    View Documents
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+                }).join("")}
+            </tbody>
+        </table>
+    `;
+}
+
+
+/* =========================================================
+   FILTERS + ACTIONS
+   Event delegation keeps the workspace stable after every
+   filter/search refresh and prevents duplicate listeners.
+========================================================= */
+
+function attachAdminDocumentWorkspaceEvents() {
+
+    const workspace =
+        document.querySelector(".lbc-document-workspace");
+
+    if (!workspace) {
+        return;
+    }
+
+    workspace.addEventListener("input", event => {
+
+        if (event.target.id !== "admin-document-search") {
+            return;
+        }
+
+        LORDBLESS_ADMIN_DOCUMENT_STATE.search =
+            event.target.value;
+
+        refreshAdminDocumentWorkspace();
+    });
+
+
+    workspace.addEventListener("change", event => {
+
+        const id = event.target.id;
+
+        if (id === "admin-document-client-filter") {
+            LORDBLESS_ADMIN_DOCUMENT_STATE.clientFilter =
+                event.target.value;
+        }
+
+        if (id === "admin-document-status-filter") {
+            LORDBLESS_ADMIN_DOCUMENT_STATE.statusFilter =
+                event.target.value;
+        }
+
+        if (id === "admin-document-journey-filter") {
+            LORDBLESS_ADMIN_DOCUMENT_STATE.journeyFilter =
+                event.target.value;
+        }
+
+        if (
+            id === "admin-document-client-filter" ||
+            id === "admin-document-status-filter" ||
+            id === "admin-document-journey-filter"
+        ) {
+            refreshAdminDocumentWorkspace();
+        }
+    });
+
+
+    workspace.addEventListener("click", event => {
+
+        const reviewButton =
+            event.target.closest(".admin-document-review-btn");
+
+        if (reviewButton) {
+            openAdminDocumentReview(
+                reviewButton.dataset.documentId
+            );
+            return;
+        }
+
+        const viewButton =
+            event.target.closest(".admin-document-view-btn");
+
+        if (viewButton) {
+            openAdminDocumentReview(
+                viewButton.dataset.documentId
+            );
+            return;
+        }
+
+        const requestButton =
+            event.target.closest(".admin-document-request-view-btn");
+
+        if (requestButton) {
+            openAdminDocumentRequest(
+                requestButton.dataset.requestId
+            );
+            return;
+        }
+
+        const clientButton =
+            event.target.closest(".admin-client-documents-btn");
+
+        if (clientButton) {
+            filterAdminDocumentsToClient(
+                clientButton.dataset.clientId
+            );
+            return;
+        }
+
+        const createButton =
+            event.target.closest("#admin-create-document-request");
+
+        if (createButton) {
+            openNewAdminDocumentRequest();
+        }
+    });
+}
+
+
+function refreshAdminDocumentWorkspace() {
+
+    const currentScroll = window.scrollY;
+
+    renderAdminDocuments();
+
+    window.scrollTo({
+        top: currentScroll,
+        behavior: "auto"
+    });
+}
+
+
+function filterAdminDocumentsToClient(clientId) {
+
+    if (!clientId) {
+        return;
+    }
+
+    LORDBLESS_ADMIN_DOCUMENT_STATE.clientFilter = clientId;
+
+    const filter =
+        document.getElementById("admin-document-client-filter");
+
+    if (filter) {
+        filter.value = clientId;
+    }
+
+    refreshAdminDocumentWorkspace();
+}
+
+
+/* =========================================================
+   VALIDITY / ATTENTION
+========================================================= */
+
+function getAdminDocumentValidityStatus(document) {
+
+    if (!document || !document.expiryDate) {
+        return {
+            value: "normal",
+            label: "No expiry date"
+        };
+    }
+
+    const expiry = new Date(
+        `${document.expiryDate}T00:00:00`
+    );
+
+    if (Number.isNaN(expiry.getTime())) {
+        return {
+            value: "normal",
+            label: "Expiry date unavailable"
+        };
+    }
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const days = Math.ceil(
+        (expiry.getTime() - today.getTime()) /
+        86400000
+    );
+
+    if (days < 0) {
+        return {
+            value: "critical",
+            label: "Expired"
+        };
+    }
+
+    if (days < 90) {
+        return {
+            value: "urgent",
+            label: "Urgent · expires within 3 months"
+        };
+    }
+
+    if (days <= 180) {
+        return {
+            value: "attention",
+            label: "Attention · expires within 6 months"
+        };
+    }
+
+    return {
+        value: "normal",
+        label: "Valid"
+    };
+}
+
+
+function getAdminDocumentAttention(document) {
+
+    if (!document) {
+        return false;
+    }
+
+    if (document.status === "rejected") {
+        return true;
+    }
+
+    if (document.status !== "approved") {
+        return false;
+    }
+
+    const validity =
+        getAdminDocumentValidityStatus(document);
+
+    return validity.value !== "normal";
+}
+
+
+/* =========================================================
+   DOCUMENT REVIEW
+========================================================= */
+
+function openAdminDocumentReview(documentId) {
+
+    const selected =
+        LORDBLESS_ADMIN_DOCUMENT_DATA.documents.find(
+            document => document.id === documentId
+        );
+
+    if (!selected || !canCurrentAdminAccessDocument(selected)) {
+        return;
+    }
+
+    const client =
+        LORDBLESS_ADMIN_DOCUMENT_DATA.clients.find(
+            item => item.id === selected.clientId
+        );
+
+    const transaction =
+        LORDBLESS_DOCUMENT_JOURNEYS.find(
+            item => item.id === selected.transactionId
+        );
+
+    if (typeof renderDocumentReview === "function") {
+
+        modalContent.innerHTML =
+            renderDocumentReview(
+                modalContent,
+                selected,
+                client,
+                transaction
+            );
+
+        enquiryModal.classList.remove("hidden");
+
+        if (typeof initialiseDocumentReview === "function") {
+            initialiseDocumentReview(
+                selected,
+                client,
+                transaction
+            );
+        }
+
+        return;
+    }
+
+    const validity =
+        getAdminDocumentValidityStatus(selected);
+
+    modalContent.innerHTML = `
+        <div class="lbc-document-modal-content">
+
+            <div class="lbc-document-modal-header">
+                <div class="lbc-document-modal-title">
+                    <h3>${escapeHTML(selected.name || "Document")}</h3>
+                    <p>${escapeHTML(selected.filename || selected.id || "")}</p>
+                </div>
+            </div>
+
+            <div class="lbc-client-document-details">
+                <div class="lbc-client-document-meta">
+                    <strong>Client</strong>
+                    <span>${escapeHTML(client?.name || selected.clientName || "—")}</span>
+                </div>
+                <div class="lbc-client-document-meta">
+                    <strong>Journey</strong>
+                    <span>${escapeHTML(transaction?.title || "Client library")}</span>
+                </div>
+                <div class="lbc-client-document-meta">
+                    <strong>Status</strong>
+                    <span>${escapeHTML(getAdminDocumentStatusLabel(selected.status))}</span>
+                </div>
+                <div class="lbc-client-document-meta">
+                    <strong>Validity</strong>
+                    <span>${escapeHTML(validity.label)}</span>
+                </div>
+            </div>
+
+        </div>
+    `;
+
+    enquiryModal.classList.remove("hidden");
+}
+
+
+/* =========================================================
+   REQUEST VIEW
+========================================================= */
+
+function openAdminDocumentRequest(requestId) {
+
+    const request =
+        LORDBLESS_ADMIN_DOCUMENT_DATA.requests.find(
+            item => item.id === requestId
+        );
+
+    if (!request || !canCurrentAdminAccessDocumentRequest(request)) {
+        return;
+    }
+
+    modalContent.innerHTML = `
+        <div class="lbc-document-modal-content">
+
+            <div class="lbc-document-modal-header">
+                <div class="lbc-document-modal-title">
+                    <h3>Document Request</h3>
+                    <p>${escapeHTML(request.id || "")}</p>
+                </div>
+            </div>
+
+            <div class="lbc-client-document-details">
+                <div class="lbc-client-document-meta">
+                    <strong>Client</strong>
+                    <span>${escapeHTML(request.clientName || request.clientId || "—")}</span>
+                </div>
+                <div class="lbc-client-document-meta">
+                    <strong>Journey</strong>
+                    <span>${escapeHTML(request.transactionTitle || request.transactionId || "—")}</span>
+                </div>
+                <div class="lbc-client-document-meta">
+                    <strong>Deadline</strong>
+                    <span>${formatDate(request.deadline)}</span>
+                </div>
+                <div class="lbc-client-document-meta">
+                    <strong>Status</strong>
+                    <span>${escapeHTML(request.status || "requested")}</span>
+                </div>
+            </div>
+
+            <div class="lbc-document-request-message">
+                <strong>Documents requested</strong>
+                <p>
+                    ${escapeHTML(request.documentNames?.join(", ") || "—")}
+                </p>
+            </div>
+
+            <div class="lbc-document-request-message">
+                ${escapeHTML(request.message || "No additional instructions.")}
+            </div>
+
+        </div>
+    `;
+
+    enquiryModal.classList.remove("hidden");
+}
+
+
+/* =========================================================
+   NEW DOCUMENT REQUEST — D4
+========================================================= */
+
+function openNewAdminDocumentRequest() {
+
+    /* =====================================================
+       D4 — DOCUMENT REQUEST SETUP
+
+       Step 1:
+       Client
+       Journey
+       Document
+       Request Type
+
+       Step 2:
+       Existing documentRequest.js composer
+    ===================================================== */
+
+
+    /* -----------------------------------------------------
+       VERIFY SHARED REQUEST COMPONENT
+    ----------------------------------------------------- */
+
+    if (
+        typeof window.LORDBLESS_DOCUMENT_REQUEST ===
+        "undefined" ||
+        typeof window.LORDBLESS_DOCUMENT_REQUEST.render !==
+        "function"
+    ) {
+
+        alert(
+            "The Document Request component is not available."
+        );
+
+        return;
+
+    }
+
+
+    /* -----------------------------------------------------
+       INITIALISE ADMIN DOCUMENT DATA
+    ----------------------------------------------------- */
+
+    initialiseAdminDocumentData();
+
+
+    /* -----------------------------------------------------
+       GET CLIENTS WITHIN CURRENT DESK SCOPE
+    ----------------------------------------------------- */
+
+    const clients =
+        getAdminClients();
+
+
+    if (
+        !Array.isArray(clients) ||
+        !clients.length
+    ) {
+
+        alert(
+            "No clients are currently available in your desk scope."
+        );
+
+        return;
+
+    }
+
+
+    /* -----------------------------------------------------
+       STABLE DOCUMENT CATALOGUE
+
+       This is intentionally kept inside the D4 workflow
+       for now so we do not introduce another global
+       dependency while repairing the current Admin Portal.
+    ----------------------------------------------------- */
+
+    const documentCatalogue = [
+
+        [
+            "passport",
+            "International Passport"
+        ],
+
+        [
+            "national_id",
+            "National ID"
+        ],
+
+        [
+            "birth_certificate",
+            "Birth Certificate"
+        ],
+
+        [
+            "marriage_certificate",
+            "Marriage Certificate"
+        ],
+
+        [
+            "divorce_certificate",
+            "Divorce Certificate"
+        ],
+
+        [
+            "passport_photo",
+            "Passport Photograph"
+        ],
+
+        [
+            "cv",
+            "CV / Résumé"
+        ],
+
+        [
+            "cover_letter",
+            "Cover Letter"
+        ],
+
+        [
+            "academic_certificate",
+            "Academic Certificate / Degree"
+        ],
+
+        [
+            "academic_transcript",
+            "Academic Transcript"
+        ],
+
+        [
+            "professional_certificate",
+            "Professional Certificate / License"
+        ],
+
+        [
+            "professional_registration",
+            "Professional Registration"
+        ],
+
+        [
+            "employment_certificate",
+            "Employment Certificate / Experience Letter"
+        ],
+
+        [
+            "employment_contract",
+            "Employment Contract"
+        ],
+
+        [
+            "reference_letter",
+            "Reference Letter"
+        ],
+
+        [
+            "recommendation_letter",
+            "Recommendation Letter"
+        ],
+
+        [
+            "payslip",
+            "Payslip"
+        ],
+
+        [
+            "bank_statement",
+            "Bank Statement"
+        ],
+
+        [
+            "bank_letter",
+            "Bank Letter"
+        ],
+
+        [
+            "proof_of_funds",
+            "Proof of Funds"
+        ],
+
+        [
+            "tax_clearance",
+            "Tax Clearance Certificate"
+        ],
+
+        [
+            "business_registration",
+            "Business Registration / Incorporation Document"
+        ],
+
+        [
+            "business_license",
+            "Business License"
+        ],
+
+        [
+            "company_profile",
+            "Company Profile"
+        ],
+
+        [
+            "invitation_letter",
+            "Invitation Letter"
+        ],
+
+        [
+            "sponsorship_letter",
+            "Sponsorship Letter"
+        ],
+
+        [
+            "affidavit",
+            "Affidavit / Statutory Declaration"
+        ],
+
+        [
+            "police_clearance",
+            "Police Clearance Certificate"
+        ],
+
+        [
+            "medical_certificate",
+            "Medical Certificate"
+        ],
+
+        [
+            "vaccination_record",
+            "Vaccination Record"
+        ],
+
+        [
+            "health_insurance",
+            "Health Insurance"
+        ],
+
+        [
+            "travel_insurance",
+            "Travel Insurance"
+        ],
+
+        [
+            "flight_itinerary",
+            "Flight Reservation / Itinerary"
+        ],
+
+        [
+            "accommodation_confirmation",
+            "Hotel / Accommodation Confirmation"
+        ],
+
+        [
+            "proof_of_address",
+            "Proof of Address"
+        ],
+
+        [
+            "utility_bill",
+            "Utility Bill"
+        ],
+
+        [
+            "residence_permit",
+            "Residence Permit / Visa"
+        ],
+
+        [
+            "previous_visa",
+            "Previous Visa / Travel History"
+        ],
+
+        [
+            "admission_letter",
+            "Admission Letter"
+        ],
+
+        [
+            "school_offer_letter",
+            "School / University Offer Letter"
+        ],
+
+        [
+            "tuition_receipt",
+            "Tuition Fee Receipt"
+        ],
+
+        [
+            "accommodation_letter",
+            "Accommodation Letter"
+        ],
+
+        [
+            "language_certificate",
+            "Language Certificate (IELTS / TOEFL etc.)"
+        ],
+
+        [
+            "nnas_advisory_report",
+            "NNAS Advisory Report"
+        ],
+
+        [
+            "nursing_registration",
+            "Nursing Council Registration"
+        ],
+
+        [
+            "nursing_training_certificate",
+            "Nursing Training Certificate"
+        ],
+
+        [
+            "nclex_eligibility",
+            "NCLEX / Exam Eligibility"
+        ],
+
+        [
+            "upbridging_evidence",
+            "Upbridging Programme Evidence"
+        ],
+
+        [
+            "job_offer",
+            "Job Offer Letter"
+        ],
+
+        [
+            "income_evidence",
+            "Salary / Income Evidence"
+        ],
+
+        [
+            "other_supporting_document",
+            "Other Supporting Document"
+        ]
+
+    ];
+
+
+    /* -----------------------------------------------------
+       STEP 1 MODAL
+    ----------------------------------------------------- */
+
+    modalContent.innerHTML = `
+
+        <div class="lbc-document-modal-content">
+
+
+            <div class="lbc-document-modal-header">
+
+                <div class="lbc-document-modal-title">
+
+                    <span class="section-eyebrow">
+                        DOCUMENT REQUEST · STEP 1
+                    </span>
+
+                    <h3>
+                        Create Document Request
+                    </h3>
+
+                    <p>
+                        Select the client, journey, document
+                        and reason for the request.
+                    </p>
+
+                </div>
+
+            </div>
+
+
+            <form
+                id="admin-document-request-setup-form"
+            >
+
+
+                <div class="lbc-form-grid">
+
+
+                    <!-- CLIENT -->
+
+                    <div class="lbc-form-field">
+
+                        <label
+                            for="admin-request-client"
+                        >
+                            Client
+                        </label>
+
+                        <select
+                            id="admin-request-client"
+                            name="clientId"
+                            required
+                        >
+
+                            <option value="">
+                                Select client
+                            </option>
+
+                            ${clients.map(client => `
+
+                                <option
+                                    value="${escapeHTML(client.id)}"
+                                >
+                                    ${escapeHTML(
+                                        client.fullName ||
+                                        client.name ||
+                                        client.id
+                                    )}
+                                    ·
+                                    ${escapeHTML(client.id)}
+                                </option>
+
+                            `).join("")}
+
+                        </select>
+
+                    </div>
+
+
+                    <!-- JOURNEY -->
+
+                    <div class="lbc-form-field">
+
+                        <label
+                            for="admin-request-journey"
+                        >
+                            Journey
+                        </label>
+
+                        <select
+                            id="admin-request-journey"
+                            name="transactionId"
+                            required
+                        >
+
+                            <option value="">
+                                Select client first
+                            </option>
+
+                        </select>
+
+                    </div>
+
+
+                    <!-- DOCUMENT -->
+
+                    <div class="lbc-form-field">
+
+                        <label
+                            for="admin-request-document"
+                        >
+                            Document Required
+                        </label>
+
+                        <select
+                            id="admin-request-document"
+                            name="documentType"
+                            required
+                        >
+
+                            <option value="">
+                                Select document
+                            </option>
+
+                            ${documentCatalogue.map(item => `
+
+                                <option
+                                    value="${escapeHTML(item[0])}"
+                                >
+                                    ${escapeHTML(item[1])}
+                                </option>
+
+                            `).join("")}
+
+                        </select>
+
+                    </div>
+
+
+                    <!-- REQUEST TYPE -->
+
+                    <div class="lbc-form-field">
+
+                        <label
+                            for="admin-request-type"
+                        >
+                            Request Type
+                        </label>
+
+                        <select
+                            id="admin-request-type"
+                            name="requestType"
+                            required
+                        >
+
+                            <option value="missing">
+                                Missing document
+                            </option>
+
+                            <option value="replacement">
+                                Replacement required
+                            </option>
+
+                            <option value="expired">
+                                Expired / no longer valid
+                            </option>
+
+                            <option value="additional">
+                                Additional document
+                            </option>
+
+                        </select>
+
+                    </div>
+
+
+                </div>
+
+
+                <div
+                    id="admin-request-setup-error"
+                    class="lbc-document-form-error"
+                    hidden
+                ></div>
+
+
+                <div class="lbc-document-modal-actions">
+
+
+                    <button
+                        type="button"
+                        class="btn btn-secondary"
+                        id="admin-request-setup-cancel"
+                    >
+                        Cancel
+                    </button>
+
+
+                    <button
+                        type="submit"
+                        class="btn btn-primary"
+                    >
+                        Continue
+                    </button>
+
+
+                </div>
+
+
+            </form>
+
+        </div>
+
+    `;
+
+
+    /* -----------------------------------------------------
+       OPEN MODAL
+    ----------------------------------------------------- */
+
+    enquiryModal.classList.remove(
+        "hidden"
+    );
+
+
+    /* -----------------------------------------------------
+       GET FORM ELEMENTS
+    ----------------------------------------------------- */
+
+    const clientSelect =
+        document.getElementById(
+            "admin-request-client"
+        );
+
+
+    const journeySelect =
+        document.getElementById(
+            "admin-request-journey"
+        );
+
+
+    const form =
+        document.getElementById(
+            "admin-document-request-setup-form"
+        );
+
+
+    const cancelButton =
+        document.getElementById(
+            "admin-request-setup-cancel"
+        );
+
+
+    /* -----------------------------------------------------
+       POPULATE JOURNEYS FOR SELECTED CLIENT
+    ----------------------------------------------------- */
+
+    function populateJourneyOptions(
+        clientId
+    ) {
+
+        if (!journeySelect) {
+            return;
+        }
+
+
+        const journeys =
+            getAdminClientJourneys(
+                clientId
+            );
+
+
+        if (
+            !Array.isArray(journeys) ||
+            !journeys.length
+        ) {
+
+            journeySelect.innerHTML = `
+
+                <option value="">
+                    No visible journey available
+                </option>
+
+            `;
+
+            return;
+
+        }
+
+
+        journeySelect.innerHTML = `
+
+            <option value="">
+                Select journey
+            </option>
+
+            ${journeys.map(journey => `
+
+                <option
+                    value="${escapeHTML(journey.id)}"
+                >
+
+                    ${escapeHTML(
+                        journey.title ||
+                        "Client Journey"
+                    )}
+
+                    ·
+
+                    ${escapeHTML(
+                        journey.id
+                    )}
+
+                </option>
+
+            `).join("")}
+
+        `;
+
+    }
+
+
+    /* -----------------------------------------------------
+       CLIENT CHANGE
+    ----------------------------------------------------- */
+
+    if (clientSelect) {
+
+        clientSelect.addEventListener(
+            "change",
+            event => {
+
+                populateJourneyOptions(
+                    event.target.value
+                );
+
+            }
+        );
+
+    }
+
+
+    /* -----------------------------------------------------
+       CANCEL
+    ----------------------------------------------------- */
+
+    if (cancelButton) {
+
+        cancelButton.addEventListener(
+            "click",
+            closeEnquiryModal
+        );
+
+    }
+
+
+    /* -----------------------------------------------------
+       STEP 1 SUBMIT → STEP 2
+    ----------------------------------------------------- */
+
+    if (form) {
+
+        form.addEventListener(
+            "submit",
+            event => {
+
+                event.preventDefault();
+
+
+                const formData =
+                    new FormData(
+                        form
+                    );
+
+
+                const clientId =
+                    String(
+                        formData.get(
+                            "clientId"
+                        ) ||
+                        ""
+                    );
+
+
+                const transactionId =
+                    String(
+                        formData.get(
+                            "transactionId"
+                        ) ||
+                        ""
+                    );
+
+
+                const documentType =
+                    String(
+                        formData.get(
+                            "documentType"
+                        ) ||
+                        ""
+                    );
+
+
+                const requestType =
+                    String(
+                        formData.get(
+                            "requestType"
+                        ) ||
+                        "missing"
+                    );
+
+
+                const client =
+                    clients.find(
+                        item =>
+                            item.id ===
+                            clientId
+                    ) ||
+                    null;
+
+
+                const journey =
+                    getAdminClientJourneys(
+                        clientId
+                    ).find(
+                        item =>
+                            item.id ===
+                            transactionId
+                    ) ||
+                    null;
+
+
+                const catalogueItem =
+                    documentCatalogue.find(
+                        item =>
+                            item[0] ===
+                            documentType
+                    );
+
+
+                /* -----------------------------------------
+                   VALIDATION
+                ----------------------------------------- */
+
+                if (
+                    !client ||
+                    !journey ||
+                    !catalogueItem
+                ) {
+
+                    const errorBox =
+                        document.getElementById(
+                            "admin-request-setup-error"
+                        );
+
+
+                    if (errorBox) {
+
+                        errorBox.textContent =
+                            "Please select a client, journey and document before continuing.";
+
+                        errorBox.hidden =
+                            false;
+
+                    }
+
+                    return;
+
+                }
+
+
+                /* -----------------------------------------
+                   CREATE REQUIREMENT OBJECT
+
+                   This is NOT a new permanent document.
+
+                   It is a journey-specific requirement
+                   that will be linked to the client's
+                   permanent document library later.
+                ----------------------------------------- */
+
+                const requirement = {
+
+                    requirementId:
+                        `REQ-${documentType}-${Date.now()}`,
+
+                    documentType:
+                        catalogueItem[0],
+
+                    name:
+                        catalogueItem[1],
+
+                    status:
+                        requestType ===
+                        "expired"
+
+                            ? "expired"
+
+                            : requestType ===
+                              "replacement"
+
+                                ? "rejected"
+
+                                : "required"
+
+                };
+
+
+                /* -----------------------------------------
+                   STEP 2
+                ----------------------------------------- */
+
+                modalContent.innerHTML = `
+
+                    <div
+                        class="lbc-document-modal-content"
+                    >
+
+
+                        <div
+                            class="lbc-document-modal-header"
+                        >
+
+                            <div
+                                class="lbc-document-modal-title"
+                            >
+
+                                <span
+                                    class="section-eyebrow"
+                                >
+                                    DOCUMENT REQUEST · STEP 2
+                                </span>
+
+
+                                <h3>
+                                    Request
+                                    ${escapeHTML(
+                                        requirement.name
+                                    )}
+                                </h3>
+
+
+                                <p>
+
+                                    ${escapeHTML(
+                                        client.fullName ||
+                                        client.name ||
+                                        client.id
+                                    )}
+
+                                    ·
+
+                                    ${escapeHTML(
+                                        journey.title ||
+                                        journey.id
+                                    )}
+
+                                </p>
+
+                            </div>
+
+                        </div>
+
+
+                        <div
+                            id="admin-d4-request-container"
+                        ></div>
+
+
+                    </div>
+
+                `;
+
+
+                const container =
+                    document.getElementById(
+                        "admin-d4-request-container"
+                    );
+
+
+                if (!container) {
+                    return;
+                }
+
+
+                /* -----------------------------------------
+                   OPEN EXISTING REQUEST COMPOSER
+                ----------------------------------------- */
+
+                window
+                    .LORDBLESS_DOCUMENT_REQUEST
+                    .render(
+                        container,
+                        client,
+                        journey,
+                        requirement,
+                        requestType
+                    );
+
+            }
+        );
+
+    }
+
+}
+
+/* =========================================================
+   CLOSE DOCUMENT MODAL
+========================================================= */
+
+function closeAdminDocumentModal() {
+
+    enquiryModal.classList.add("hidden");
+
+    if (modalContent) {
+        modalContent.innerHTML = "";
+    }
+}
+
+
+/* =========================================
+   DASHBOARD
+========================================= */
+
+function renderDashboard() {
+
+    const enquiries =
+        state.enquiries;
+
+
+    const total =
+        enquiries.length;
+
+
+    const newCount =
+        enquiries.filter(
+            enquiry =>
+                enquiry.status === "new"
+        ).length;
+
+
+    const reviewingCount =
+        enquiries.filter(
+            enquiry =>
+                enquiry.status === "reviewing"
+        ).length;
+
+
+    const contactedCount =
+        enquiries.filter(
+            enquiry =>
+                enquiry.status === "contacted"
+        ).length;
+
+
+    appContent.innerHTML = `
+
+        <div class="stats-grid">
+
+            ${statCard(
+                "Total Enquiries",
+                total,
+                "All recorded enquiries"
+            )}
+
+            ${statCard(
+                "New",
+                newCount,
+                "Awaiting review"
+            )}
+
+            ${statCard(
+                "Reviewing",
+                reviewingCount,
+                "Currently being assessed"
+            )}
+
+            ${statCard(
+                "Contacted",
+                contactedCount,
+                "Client contact started"
+            )}
+
+        </div>
+
+
+        <section class="section">
+
+            <div class="section-header">
+
+                <div>
+
+                    <h2 class="section-title">
+                        Recent Enquiries
+                    </h2>
+
+                    <div class="section-subtitle">
+                        Latest client enquiries received by LORDBLESS.
+                    </div>
+
+                </div>
+
+
+                <button
+                    class="button"
+                    id="view-all-enquiries"
+                >
+                    View All
+                </button>
+
+            </div>
+
+
+            <div class="table-wrapper">
+
+                ${enquiryTable(
+                    enquiries.slice(
+                        0,
+                        5
+                    )
+                )}
+
+            </div>
+
+        </section>
+
+    `;
+
+
+    const enquiryFilters = [
+        "all",
+        "new",
+        "reviewing",
+        "contacted"
+    ];
+
+    appContent
+        .querySelectorAll(".stats-grid .stat-card")
+        .forEach((card, index) => {
+
+            card.addEventListener(
+                "click",
+                () => {
+
+                    state.statusFilter =
+                        enquiryFilters[index];
+
+                    state.search = "";
+
+                    renderView(
+                        "enquiries"
+                    );
+
+                }
+            );
+
+        });
+
+
+    document
+        .getElementById(
+            "view-all-enquiries"
+        )
+        ?.addEventListener(
+            "click",
+            () => {
+
+                state.currentView =
+                    "enquiries";
+
+                renderView(
+                    "enquiries"
+                );
+
+            }
+        );
+
+
+    attachEnquiryRows();
+
+}
+
+
+/* =========================================
+   ENQUIRIES
+========================================= */
+
+function renderEnquiries() {
+
+    const filtered =
+        getFilteredEnquiries();
+
+
+    appContent.innerHTML = `
+
+        <section class="section">
+
+            <div class="section-header">
+
+                <div>
+
+                    <h2 class="section-title">
+                        All Enquiries
+                    </h2>
+
+                    <div class="section-subtitle">
+                        Search and manage LORDBLESS client enquiries.
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <div class="toolbar">
+
+                <input
+                    id="enquiry-search"
+                    class="search-input"
+                    type="search"
+                    placeholder="Search reference, client, email or service..."
+                    value="${escapeHTML(
+                        state.search
+                    )}"
+                >
+
+
+                <select
+                    id="status-filter"
+                    class="filter-select"
+                >
+
+                    <option value="all">
+                        All statuses
+                    </option>
+
+                    ${LORDBLESS_MOCK_DATA
+                        .statuses
+                        .map(
+                            status => `
+
+                                <option
+                                    value="${escapeHTML(
+                                        status
+                                    )}"
+                                >
+
+                                    ${escapeHTML(
+                                        LORDBLESS_STATUS_LABELS[
+                                            status
+                                        ] ||
+                                        status
+                                    )}
+
+                                </option>
+
+                            `
+                        )
+                        .join("")
+                    }
+
+                </select>
+
+            </div>
+
+
+            <div class="table-wrapper">
+
+                ${enquiryTable(
+                    filtered
+                )}
+
+            </div>
+
+        </section>
+
+    `;
+
+
+    const searchInput =
+        document.getElementById(
+            "enquiry-search"
+        );
+
+
+    const statusFilter =
+        document.getElementById(
+            "status-filter"
+        );
+
+
+    statusFilter.value =
+        state.statusFilter;
+
+
+    searchInput.addEventListener(
+        "input",
+        event => {
+
+            state.search =
+                event.target.value;
+
+            renderEnquiries();
+
+        }
+    );
+
+
+    statusFilter.addEventListener(
+        "change",
+        event => {
+
+            state.statusFilter =
+                event.target.value;
+
+            renderEnquiries();
+
+        }
+    );
+
+
+    attachEnquiryRows();
+
+}
+
+
+/* =========================================
+   FILTER ENQUIRIES
+========================================= */
+
+function getFilteredEnquiries() {
+
+    const search =
+        state.search
+            .trim()
+            .toLowerCase();
+
+
+    return state.enquiries.filter(
+        enquiry => {
+
+            const matchesStatus =
+                state.statusFilter === "all" ||
+                enquiry.status ===
+                    state.statusFilter;
+
+
+            if (!matchesStatus) {
+
+                return false;
+
+            }
+
+
+            if (!search) {
+
+                return true;
+
+            }
+
+
+            const searchable = [
+
+                enquiry.reference,
+
+                enquiry.client.fullName,
+
+                enquiry.client.email,
+
+                enquiry.client.whatsapp,
+
+                enquiry.client.currentCountry,
+
+                ...(enquiry.services || []),
+
+                enquiry.journey.destination
+
+            ]
+                .join(" ")
+                .toLowerCase();
+
+
+            return searchable.includes(
+                search
+            );
+
+        }
+    );
+
+}
+
+
+/* =========================================
+   ENQUIRY TABLE
+========================================= */
+
+function enquiryTable(
+    enquiries
+) {
+
+    if (!enquiries.length) {
+
+        return `
+
+            <div class="empty-state">
+
+                <div class="empty-state-title">
+                    No enquiries found
+                </div>
+
+                <div class="empty-state-text">
+                    Try changing your search or filter.
+                </div>
+
+            </div>
+
+        `;
+
+    }
+
+
+    return `
+
+        <table class="enquiry-table">
+
+            <thead>
+
+                <tr>
+
+                    <th>
+                        Reference
+                    </th>
+
+                    <th>
+                        Client
+                    </th>
+
+                    <th>
+                        Service
+                    </th>
+
+                    <th>
+                        Destination
+                    </th>
+
+                    <th>
+                        Status
+                    </th>
+
+                    <th>
+                        Date
+                    </th>
+
+                </tr>
+
+            </thead>
+
+
+            <tbody>
+
+                ${enquiries
+                    .map(
+                        enquiry => `
+
+                            <tr
+                                class="enquiry-row"
+                                data-reference="${escapeHTML(
+                                    enquiry.reference
+                                )}"
+                            >
+
+                                <td>
+
+                                    <strong>
+                                        ${escapeHTML(
+                                            enquiry.reference
+                                        )}
+                                    </strong>
+
+                                </td>
+
+
+                                <td>
+                                    ${escapeHTML(
+                                        enquiry.client.fullName
+                                    )}
+                                </td>
+
+
+                                <td>
+                                    ${escapeHTML(
+                                        formatServices(
+                                            enquiry.services
+                                        )
+                                    )}
+                                </td>
+
+
+                                <td>
+                                    ${escapeHTML(
+                                        enquiry.journey.destination
+                                    )}
+                                </td>
+
+
+                                <td>
+                                    ${renderStatusBadge(
+                                        enquiry.status
+                                    )}
+                                </td>
+
+
+                                <td>
+                                    ${formatDate(
+                                        enquiry.createdAt
+                                    )}
+                                </td>
+
+                            </tr>
+
+                        `
+                    )
+                    .join("")
+                }
+
+            </tbody>
+
+        </table>
+
+    `;
+
+}
+
+
+/* =========================================
+   ENQUIRY OPENING
+========================================= */
+
+function attachEnquiryRows() {
+
+    document
+        .querySelectorAll(
+            ".enquiry-row"
+        )
+        .forEach(row => {
+
+            row.addEventListener(
+                "click",
+                () => {
+
+                    const reference =
+                        row.dataset.reference;
+
+
+                    openEnquiry(
+                        reference
+                    );
+
+                }
+            );
+
+        });
+
+}
+
+
+function openEnquiry(
+    reference
+) {
+
+    const enquiry =
+        state.enquiries.find(
+            item =>
+                item.reference ===
+                reference
+        );
+
+
+    if (!enquiry) {
+
+        return;
+
+    }
+
+
+    modalContent.innerHTML =
+        renderEnquiryDetail(
+            enquiry
+        );
+
+
+    enquiryModal.classList.remove(
+        "hidden"
+    );
+
+
+    initialiseStatusManager(
+        enquiry
+    );
+
+
+    initialiseNotes(
+        enquiry
+    );
+
+
+    initialiseFollowups(
+        enquiry
+    );
+
+}
+
+/* =========================================
+   TEAM ACCESS INITIALISATION
+========================================= */
+
+function initialiseTeamAccess() {
+
+    /*
+       Team & Access is now rendered
+       dynamically through renderView().
+       
+       No static event binding is required
+       during application startup.
+    */
+
+    return;
+
+}
+
+
+/* =========================================
+   PLACEHOLDER
+========================================= */
+
+function renderPlaceholder(
+    title,
+    message
+) {
+
+    appContent.innerHTML = `
+
+        <section class="section">
+
+            <div class="empty-state">
+
+                <div class="empty-state-title">
+                    ${escapeHTML(title)}
+                </div>
+
+                <div class="empty-state-text">
+                    ${escapeHTML(message)}
+                </div>
+
+            </div>
+
+        </section>
+
+    `;
+
+}
+
+
+/* =========================================
+   STAT CARD
+========================================= */
+
+function statCard(
+    label,
+    value,
+    description
+) {
+
+    return `
+
+        <div class="stat-card">
+
+            <div class="stat-label">
+                ${escapeHTML(label)}
+            </div>
+
+            <div class="stat-value">
+                ${escapeHTML(
+                    String(value)
+                )}
+            </div>
+
+            <div class="stat-description">
+                ${escapeHTML(
+                    description
+                )}
+            </div>
+
+        </div>
+
+    `;
+
+}
+
+
+/* =========================================
+   FORMAT SERVICES
+========================================= */
+
+function formatServices(
+    services
+) {
+
+    if (
+        !Array.isArray(services) ||
+        !services.length
+    ) {
+
+        return "Not provided";
+
+    }
+
+
+    return services
+        .map(
+            service =>
+                service.replace(
+                    /-/g,
+                    " "
+                )
+        )
+        .join(", ");
+
+}
+
+
+/* =========================================
+   FORMAT DATE
+========================================= */
+
+function formatDate(
+    date
+) {
+
+    if (!date) {
+
+        return "Not provided";
+
+    }
+
+
+    return new Date(
+        date
+    ).toLocaleDateString(
+        "en-GB",
+        {
+            day: "2-digit",
+            month: "short",
+            year: "numeric"
+        }
+    );
+
+}
+
+
+/* =========================================
+   HTML ESCAPING
+========================================= */
+
+function escapeHTML(
+    value
+) {
+
+    return String(
+        value ?? ""
+    )
+        .replace(
+            /&/g,
+            "&amp;"
+        )
+        .replace(
+            /</g,
+            "&lt;"
+        )
+        .replace(
+            />/g,
+            "&gt;"
+        )
+        .replace(
+            /"/g,
+            "&quot;"
+        )
+        .replace(
+            /'/g,
+            "&#039;"
+        );
+
+}
+
+
+/* =========================================
+   MODAL
+========================================= */
+
+function setupModal() {
+
+    if (!closeModal) {
+
+        return;
+
+    }
+
+
+    closeModal.addEventListener(
+        "click",
+        closeEnquiryModal
+    );
+
+
+    document
+        .querySelector(
+            ".modal-backdrop"
+        )
+        ?.addEventListener(
+            "click",
+            closeEnquiryModal
+        );
+
+
+    document.addEventListener(
+        "keydown",
+        event => {
+
+            if (
+                event.key ===
+                "Escape"
+            ) {
+
+                closeEnquiryModal();
+
+            }
+
+        }
+    );
+
+}
+
+
+function closeEnquiryModal() {
+
+    if (!enquiryModal) {
+
+        return;
+
+    }
+
+
+    enquiryModal.classList.add(
+        "hidden"
+    );
+
+}
+
+
+/* =========================================
+   DEVELOPMENTadmin/admin.js
+========================================= */
+
+console.log(
+    "LORDBLESS ADMIN PORTAL: Development UI loaded."
+);
