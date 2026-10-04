@@ -12,9 +12,23 @@ const state = {
 
     currentView: "dashboard",
 
-    enquiries: [
-        ...LORDBLESS_MOCK_DATA.enquiries
-    ],
+    enquiries: [],
+
+    enquiryDataSource: "loading",
+
+    enquiryLoadError: "",
+
+    authReady: false,
+
+    authSession: null,
+
+    authUser: null,
+
+    adminIdentity: null,
+
+    authResolvingUserId: null,
+
+    authError: "",
 
     search: "",
 
@@ -27,8 +41,7 @@ const state = {
    CURRENT ADMIN USER
 ========================================= */
 
-const LORDBLESS_CURRENT_USER =
-    getUser("USR-001");
+let LORDBLESS_CURRENT_USER = null;
 
 
 function getCurrentUser() {
@@ -95,12 +108,766 @@ document.addEventListener(
 
         setupAdminDocumentRequestEvents();
 
-        renderView(
-            "dashboard"
-        );
+        setupAdminAuth();
 
     }
 );
+
+
+function setupAdminAuth() {
+
+    showAdminAuthGate(
+        "Checking for an existing Admin session..."
+    );
+
+    lordblessSupabase.auth.onAuthStateChange(
+        (event, session) => {
+
+            if (event === "INITIAL_SESSION") {
+                return;
+            }
+
+            state.authError = "";
+            applyAdminAuthSession(session);
+
+        }
+    );
+
+    lordblessSupabase.auth
+        .getSession()
+        .then(({ data, error }) => {
+
+            state.authError =
+                error?.message || "";
+
+            applyAdminAuthSession(
+                data?.session || null
+            );
+
+        })
+        .catch(error => {
+
+            state.authError =
+                error?.message ||
+                String(error);
+
+            applyAdminAuthSession(null);
+
+        });
+
+    document
+        .querySelector(".logout-button")
+        ?.addEventListener(
+            "click",
+            signOutAdmin
+        );
+
+}
+
+
+function applyAdminAuthSession(session) {
+
+    const previousUserId =
+        state.authUser?.id || null;
+
+    state.authSession =
+        session || null;
+
+    state.authUser =
+        session?.user || null;
+
+    if (!state.authUser) {
+
+        state.authReady = true;
+        state.adminIdentity = null;
+        state.authResolvingUserId = null;
+        LORDBLESS_CURRENT_USER = null;
+        window.LORDBLESS_CURRENT_USER = null;
+
+        state.enquiries = [];
+        state.enquiryDataSource = "loading";
+        state.enquiryLoadError = "";
+
+        showAdminAuthGate(
+            state.authError
+        );
+
+        return;
+
+    }
+
+    const authUser = state.authUser;
+
+    if (state.adminIdentity?.id === authUser.id) {
+        state.authReady = true;
+        return;
+    }
+
+    if (state.authResolvingUserId === authUser.id) {
+        return;
+    }
+
+    state.authReady = false;
+    state.authResolvingUserId = authUser.id;
+    state.authError = "";
+    showAdminAuthGate("Resolving your staff access...");
+
+    void resolveAdminAccessContext(authUser)
+        .then(identity => {
+
+            if (state.authUser?.id !== authUser.id) {
+                return;
+            }
+
+            state.authResolvingUserId = null;
+            state.adminIdentity = identity;
+            state.authReady = true;
+            LORDBLESS_CURRENT_USER = identity;
+            window.LORDBLESS_CURRENT_USER = identity;
+            state.authError = "";
+
+            hideAdminAuthGate();
+            updateAdminIdentity(authUser, identity);
+            applyAdminNavigationAccess();
+
+            if (!hasPermission(identity, "enquiries.read")) {
+                state.enquiries = [];
+                state.enquiryDataSource = "not_authorized";
+                state.enquiryLoadError = "Your staff permissions do not include enquiry access.";
+            }
+
+            const allowedView = getFirstPermittedAdminView(
+                identity,
+                state.currentView
+            );
+
+            if (!allowedView) {
+                state.currentView = "";
+                if (appContent) {
+                    appContent.innerHTML = `
+                        <section class="section">
+                            <div class="section-header">
+                                <div>
+                                    <h2>No Admin modules assigned</h2>
+                                    <p class="section-subtitle">Contact an Overall Admin to request the permissions required for your work.</p>
+                                </div>
+                            </div>
+                        </section>
+                    `;
+                }
+                return;
+            }
+
+            state.currentView = allowedView;
+            renderView(allowedView);
+
+            if (
+                previousUserId !== authUser.id &&
+                hasPermission(identity, "enquiries.read")
+            ) {
+                loadAdminEnquiries();
+            }
+
+        })
+        .catch(error => {
+
+            if (state.authUser?.id !== authUser.id) {
+                return;
+            }
+
+            state.authResolvingUserId = null;
+            state.adminIdentity = null;
+            state.authReady = true;
+            LORDBLESS_CURRENT_USER = null;
+            window.LORDBLESS_CURRENT_USER = null;
+            state.authError = error?.message || String(error);
+            showAdminAuthGate(state.authError);
+
+        });
+
+}
+
+
+async function resolveAdminAccessContext(authUser) {
+
+    const { data: profile, error: profileError } =
+        await lordblessSupabase
+            .from("staff_profiles")
+            .select("user_id, display_name, active")
+            .eq("user_id", authUser.id)
+            .maybeSingle();
+
+    if (profileError) throw profileError;
+    if (!profile?.active) {
+        throw new Error("This account is not assigned an active LORDBLESS staff profile.");
+    }
+
+    const [rolesResult, permissionsResult, desksResult] =
+        await Promise.all([
+            lordblessSupabase
+                .from("staff_roles")
+                .select("role_code, is_primary")
+                .eq("user_id", authUser.id),
+            lordblessSupabase
+                .from("staff_permissions")
+                .select("permission_code")
+                .eq("user_id", authUser.id),
+            lordblessSupabase
+                .from("staff_desks")
+                .select("desk_id, desks(code, name)")
+                .eq("user_id", authUser.id)
+        ]);
+
+    if (rolesResult.error) throw rolesResult.error;
+    if (permissionsResult.error) throw permissionsResult.error;
+    if (desksResult.error) throw desksResult.error;
+
+    const roles = rolesResult.data || [];
+    if (!roles.length) {
+        throw new Error("This staff profile has no role assignment.");
+    }
+
+    const roleCodes = roles.map(item => item.role_code);
+    let rolePermissionCodes = [];
+
+    if (roleCodes.length) {
+        const { data, error } = await lordblessSupabase
+            .from("role_permissions")
+            .select("permission_code")
+            .in("role_code", roleCodes);
+
+        if (error) throw error;
+        rolePermissionCodes = (data || [])
+            .map(item => item.permission_code);
+    }
+
+    let desks = (desksResult.data || [])
+        .map(item => ({
+            id: item.desk_id,
+            code: item.desks?.code || "",
+            name: item.desks?.name || ""
+        }))
+        .filter(item => item.code);
+
+    const permissions = [...new Set([
+        ...rolePermissionCodes,
+        ...(permissionsResult.data || []).map(item => item.permission_code)
+    ])];
+
+    const isOverallAdmin =
+        roleCodes.includes("overall_admin") ||
+        permissions.includes("admin.all");
+
+    if (isOverallAdmin) {
+        const { data: allDesks, error: allDesksError } =
+            await lordblessSupabase
+                .from("desks")
+                .select("id, code, name")
+                .eq("active", true);
+
+        if (allDesksError) throw allDesksError;
+        desks = allDesks || [];
+    }
+
+    const primaryRole =
+        roles.find(item => item.is_primary)?.role_code ||
+        roles[0].role_code;
+
+    return {
+        id: authUser.id,
+        userId: authUser.id,
+        name: profile.display_name || authUser.email || "Staff member",
+        role: primaryRole,
+        roleCodes,
+        permissions,
+        desks,
+        deskIds: desks.map(item => item.code),
+        desk: desks[0]?.code || null,
+        isOverallAdmin
+    };
+
+}
+
+
+const ADMIN_VIEW_PERMISSIONS = {
+    dashboard: "dashboard.read",
+    enquiries: "enquiries.read",
+    clients: "clients.read",
+    followups: "followups.read",
+    documents: "documents.read",
+    finance: "finance.read",
+    assessments: "applications.read",
+    stories: "stories.read",
+    team: "team.manage",
+    settings: "settings.read"
+};
+
+
+function getFirstPermittedAdminView(user, requestedView) {
+
+    if (
+        ADMIN_VIEW_PERMISSIONS[requestedView] &&
+        hasPermission(user, ADMIN_VIEW_PERMISSIONS[requestedView])
+    ) {
+        return requestedView;
+    }
+
+    const availableView = Object.entries(ADMIN_VIEW_PERMISSIONS)
+        .find(([view, permission]) => hasPermission(user, permission));
+
+    return availableView?.[0] || null;
+
+}
+
+
+function applyAdminNavigationAccess() {
+
+    const user = getCurrentUser();
+    if (!user) return;
+
+    document.querySelectorAll("[data-view]").forEach(item => {
+        const permission = ADMIN_VIEW_PERMISSIONS[item.dataset.view];
+        if (!permission) return;
+        item.hidden = !hasPermission(user, permission);
+    });
+
+}
+
+
+function showAdminAuthGate(message = "") {
+
+    const adminApp =
+        document.querySelector(".admin-app");
+
+    if (adminApp) {
+        adminApp.inert = true;
+        adminApp.setAttribute(
+            "aria-hidden",
+            "true"
+        );
+    }
+
+    let gate =
+        document.getElementById(
+            "admin-auth-gate"
+        );
+
+    if (!gate) {
+        gate = document.createElement("div");
+        gate.id = "admin-auth-gate";
+        gate.setAttribute("role", "dialog");
+        gate.setAttribute("aria-modal", "true");
+        gate.style.cssText =
+            "position:fixed;inset:0;z-index:9999;display:grid;place-items:center;padding:24px;background:#0b1730;";
+        document.body.appendChild(gate);
+    }
+
+    gate.innerHTML = `
+        <section style="width:min(100%, 440px);padding:36px;background:#fff;border-radius:16px;box-shadow:0 24px 80px rgba(0,0,0,.28);">
+            <div class="topbar-label">LORDBLESS CONSULTANCY</div>
+            <h1 style="margin:12px 0 8px;color:#0b1730;">Admin sign in</h1>
+            <p style="margin:0 0 24px;color:#667085;">Sign in with your Admin account to continue.</p>
+            <form id="admin-auth-form">
+                <label for="admin-auth-email">Email</label>
+                <input id="admin-auth-email" class="search-input" type="email" autocomplete="username" required style="display:block;width:100%;margin:8px 0 18px;">
+                <label for="admin-auth-password">Password</label>
+                <input id="admin-auth-password" class="search-input" type="password" autocomplete="current-password" required style="display:block;width:100%;margin:8px 0 18px;">
+                <button class="button" type="submit" ${state.authReady ? "" : "disabled"}>Sign in</button>
+                <p id="admin-auth-message" role="alert" style="margin:14px 0 0;color:#9b1c1c;"></p>
+                <button id="admin-auth-sign-out" class="button" type="button" ${state.authUser ? "" : "hidden"} style="margin-top:12px;">Sign out</button>
+            </form>
+        </section>
+    `;
+
+    const status =
+        gate.querySelector(
+            "#admin-auth-message"
+        );
+
+    if (status) {
+        status.textContent = message;
+    }
+
+    gate
+        .querySelector("#admin-auth-sign-out")
+        ?.addEventListener("click", signOutAdmin);
+
+    gate
+        .querySelector("#admin-auth-form")
+        ?.addEventListener(
+            "submit",
+            async event => {
+
+                event.preventDefault();
+
+                const email =
+                    gate.querySelector(
+                        "#admin-auth-email"
+                    ).value.trim();
+
+                const password =
+                    gate.querySelector(
+                        "#admin-auth-password"
+                    ).value;
+
+                const submitButton =
+                    gate.querySelector(
+                        'button[type="submit"]'
+                    );
+
+                if (submitButton) {
+                    submitButton.disabled = true;
+                }
+
+                let result;
+
+                try {
+                    result =
+                        await lordblessSupabase.auth
+                            .signInWithPassword({
+                                email,
+                                password
+                            });
+                } catch (error) {
+                    if (status) {
+                        status.textContent =
+                            error?.message ||
+                            String(error);
+                    }
+                    if (submitButton) {
+                        submitButton.disabled = false;
+                    }
+                    return;
+                }
+
+                const { data, error } = result;
+
+                if (error) {
+                    if (status) {
+                        status.textContent =
+                            error.message;
+                    }
+                    if (submitButton) {
+                        submitButton.disabled = false;
+                    }
+                    return;
+                }
+
+                state.authError = "";
+                applyAdminAuthSession(
+                    data.session
+                );
+
+            }
+        );
+
+}
+
+
+function hideAdminAuthGate() {
+
+    document
+        .getElementById("admin-auth-gate")
+        ?.remove();
+
+    const adminApp =
+        document.querySelector(".admin-app");
+
+    if (adminApp) {
+        adminApp.inert = false;
+        adminApp.removeAttribute(
+            "aria-hidden"
+        );
+    }
+
+}
+
+
+function updateAdminIdentity(user, identity = getCurrentUser()) {
+
+    const displayName =
+        identity?.name ||
+        user.user_metadata?.full_name ||
+        user.email ||
+        "Staff member";
+
+    const nameElement =
+        document.querySelector(
+            ".profile-info strong"
+        );
+
+    const roleElement =
+        document.querySelector(
+            ".profile-info span"
+        );
+
+    const avatar =
+        document.querySelector(
+            ".profile-avatar"
+        );
+
+    if (nameElement) {
+        nameElement.textContent = displayName;
+    }
+
+    if (roleElement) {
+        roleElement.textContent = getRoleLabel(identity?.role);
+    }
+
+    if (avatar) {
+        avatar.textContent =
+            displayName.charAt(0).toUpperCase();
+    }
+
+}
+
+
+async function signOutAdmin() {
+
+    try {
+        const { error } =
+            await lordblessSupabase.auth.signOut();
+
+        if (error) throw error;
+
+        state.authError = "";
+        applyAdminAuthSession(null);
+    } catch (error) {
+        console.error(
+            "LORDBLESS ADMIN SIGN OUT ERROR:",
+            error
+        );
+        window.alert(
+            `Unable to sign out: ${error.message}`
+        );
+    }
+
+}
+
+
+async function requestClientPortalAccess(clientId) {
+
+    if (
+        !state.authUser ||
+        !getCurrentUser() ||
+        !hasPermission(getCurrentUser(), "clients.portal_access")
+    ) {
+        throw new Error("You are not authorized to request Client Portal access.");
+    }
+
+    const { data, error } =
+        await lordblessSupabase.functions.invoke(
+            "create-client-portal-access",
+            { body: { client_id: clientId } }
+        );
+
+    if (error) throw error;
+    return data;
+
+}
+
+
+window.requestClientPortalAccess =
+    requestClientPortalAccess;
+
+
+async function loadAdminEnquiries() {
+
+    const requestUserId =
+        state.authUser?.id;
+
+    if (!requestUserId) {
+        return;
+    }
+
+    if (!state.adminIdentity?.isOverallAdmin) {
+        state.enquiries = [];
+        state.enquiryDataSource = "scope_unavailable";
+        state.enquiryLoadError =
+            "Desk-scoped enquiry access is withheld until the live enquiry-to-client ownership relationship is verified and protected by RLS.";
+        if (["dashboard", "enquiries"].includes(state.currentView)) {
+            renderView(state.currentView);
+        }
+        return;
+    }
+
+    try {
+
+        const {
+            data,
+            error
+        } = await lordblessSupabase
+            .from("enquiries")
+            .select("*");
+
+
+        if (state.authUser?.id !== requestUserId) {
+            return;
+        }
+
+
+        if (error) {
+            throw error;
+        }
+
+
+        state.enquiries =
+            (data || []).map(
+                mapSupabaseEnquiry
+            );
+
+        state.enquiryDataSource =
+            "supabase";
+
+        state.enquiryLoadError = "";
+
+    } catch (error) {
+
+        if (state.authUser?.id !== requestUserId) {
+            return;
+        }
+
+        console.error(
+            "LORDBLESS ADMIN ENQUIRIES SUPABASE ERROR:",
+            error
+        );
+
+        const isLocalDevelopment =
+            window.location.protocol === "file:" ||
+            ["localhost", "127.0.0.1", "::1"]
+                .includes(window.location.hostname);
+
+        if (
+            isLocalDevelopment &&
+            state.adminIdentity?.isOverallAdmin
+        ) {
+            state.enquiries = [
+                ...LORDBLESS_MOCK_DATA.enquiries
+            ];
+            state.enquiryDataSource =
+                "development_fallback";
+        } else {
+            state.enquiries = [];
+            state.enquiryDataSource =
+                "error";
+        }
+
+        state.enquiryLoadError =
+            error?.message ||
+            String(error);
+
+    }
+
+
+    if (
+        state.currentView === "dashboard" ||
+        state.currentView === "enquiries"
+    ) {
+        renderView(state.currentView);
+    }
+
+}
+
+
+function mapSupabaseEnquiry(record) {
+
+    const details =
+        record.data ||
+        record.enquiry_data ||
+        record.form_data ||
+        record.payload ||
+        record;
+
+    const client =
+        record.client ||
+        details.client ||
+        {};
+
+    const services =
+        record.services ||
+        details.services ||
+        [];
+
+    return {
+        ...record,
+        ...details,
+        id: record.id || details.id || "",
+        reference:
+            record.reference || record.enquiry_reference ||
+            details.reference || record.id || "",
+        desk: record.desk || details.desk || "unassigned",
+        client: {
+            ...client,
+            id: client.id || record.client_id || details.clientId || "",
+            fullName:
+                client.fullName || client.full_name ||
+                record.client_name || record.full_name || "",
+            email: client.email || record.client_email || record.email || "",
+            whatsapp:
+                client.whatsapp || client.phone ||
+                record.client_whatsapp || record.whatsapp || "",
+            currentCountry:
+                client.currentCountry || client.current_country ||
+                record.current_country || "",
+            nationality: client.nationality || record.nationality || ""
+        },
+        services: Array.isArray(services)
+            ? services
+            : services ? [services] : [],
+        journey: record.journey || details.journey || {},
+        status: record.status || details.status || "new",
+        createdAt:
+            record.createdAt || record.created_at ||
+            record.submitted_at || details.submittedAt || "",
+        notes: Array.isArray(record.notes) ? record.notes : details.notes || [],
+        followups:
+            Array.isArray(record.followups)
+                ? record.followups
+                : details.followups || []
+    };
+
+}
+
+
+function renderEnquiryDataNotice() {
+
+    if (state.enquiryDataSource === "loading") {
+        return `
+            <div class="section-subtitle" role="status">
+                Loading enquiries from Supabase...
+            </div>
+        `;
+    }
+
+    if (state.enquiryDataSource === "development_fallback") {
+        return `
+            <div class="section-subtitle" role="alert">
+                Supabase enquiries could not be loaded. Showing development fixtures.
+                ${escapeHTML(state.enquiryLoadError)}
+            </div>
+        `;
+    }
+
+    if (state.enquiryDataSource === "error") {
+        return `
+            <div class="section-subtitle" role="alert">
+                Supabase enquiries could not be loaded. No mock records are displayed.
+                ${escapeHTML(state.enquiryLoadError)}
+            </div>
+        `;
+    }
+
+    if (state.enquiryDataSource === "scope_unavailable") {
+        return `
+            <div class="section-subtitle" role="status">
+                ${escapeHTML(state.enquiryLoadError)}
+            </div>
+        `;
+    }
+
+    return "";
+
+}
 
 
 /* =========================================
@@ -1592,8 +2359,54 @@ function renderView(
     view
 ) {
 
+    if (
+        !state.authReady ||
+        !state.authUser ||
+        !state.adminIdentity
+    ) {
+        showAdminAuthGate(
+            state.authError
+        );
+        return;
+    }
+
     state.currentView =
         view;
+
+    const requiredPermission =
+        ADMIN_VIEW_PERMISSIONS[view];
+
+    if (
+        requiredPermission &&
+        !hasPermission(
+            getCurrentUser(),
+            requiredPermission
+        )
+    ) {
+        view = getFirstPermittedAdminView(
+            getCurrentUser(),
+            ""
+        );
+
+        if (!view) {
+            state.currentView = "";
+            if (appContent) {
+                appContent.innerHTML = `
+                    <section class="section">
+                        <div class="section-header">
+                            <div>
+                                <h2>No Admin modules assigned</h2>
+                                <p class="section-subtitle">Contact an Overall Admin to request the permissions required for your work.</p>
+                            </div>
+                        </div>
+                    </section>
+                `;
+            }
+            return;
+        }
+
+        state.currentView = view;
+    }
 
 
     const titles = {
@@ -1803,8 +2616,8 @@ function getAdminClients() {
 
    Super Admin / All Desks users may see everything.
 
-   This is frontend/mock enforcement for the current stage.
-   Supabase RLS will become the real security boundary later.
+   This is a UI visibility filter for prototype records only.
+   Supabase RLS is authoritative for migrated database records.
 ========================================================= */
 
 function getCurrentAdminDesk() {
@@ -1826,6 +2639,10 @@ function currentAdminHasAllDeskAccess() {
 
     if (!user) {
         return false;
+    }
+
+    if (user.isOverallAdmin === true) {
+        return true;
     }
 
     const role =
@@ -1877,7 +2694,7 @@ function getJourneyDeskId(
         destination === "united states" ||
         destination === "united states of america"
     ) {
-        return "canada_us";
+        return "canada";
     }
 
     if (destination === "china") {
@@ -1930,12 +2747,13 @@ function canCurrentAdminAccessJourney(
         return true;
     }
 
-    const currentDesk =
-        getCurrentAdminDesk();
+    const user = getCurrentUser();
+    const allowedDesks = Array.isArray(user?.deskIds)
+        ? user.deskIds
+        : [getCurrentAdminDesk()].filter(Boolean);
 
-    return (
-        currentDesk &&
-        getJourneyDeskId(journey) === currentDesk
+    return allowedDesks.includes(
+        getJourneyDeskId(journey)
     );
 
 }
@@ -5706,6 +6524,9 @@ function renderDashboard() {
         </div>
 
 
+        ${renderEnquiryDataNotice()}
+
+
         <section class="section">
 
             <div class="section-header">
@@ -5816,6 +6637,8 @@ function renderEnquiries() {
     appContent.innerHTML = `
 
         <section class="section">
+
+            ${renderEnquiryDataNotice()}
 
             <div class="section-header">
 

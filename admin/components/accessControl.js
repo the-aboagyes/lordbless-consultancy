@@ -14,10 +14,16 @@ function hasPermission(user, permission) {
         return false;
     }
 
-    const permissions = getUserPermissions(user);
+    const permissions = Array.isArray(user.permissions)
+        ? user.permissions
+        : getUserPermissions(user);
 
     /* Super Admin */
-    if (permissions.includes("*")) {
+    if (
+        user.isOverallAdmin === true ||
+        permissions.includes("*") ||
+        permissions.includes("admin.all")
+    ) {
         return true;
     }
 
@@ -35,17 +41,16 @@ function canAccessDesk(user, deskId) {
         return false;
     }
 
-    /* Super Admin */
-    if (user.role === "super_admin") {
+    /* Overall Admin */
+    if (user.isOverallAdmin === true || user.role === "super_admin") {
         return true;
     }
 
-    /* Finance Manager */
-    if (user.role === "finance_manager") {
-        return false;
-    }
+    const assignedDesks = Array.isArray(user.deskIds)
+        ? user.deskIds
+        : [user.desk].filter(Boolean);
 
-    return user.desk === deskId;
+    return assignedDesks.includes(deskId);
 }
 
 
@@ -59,17 +64,15 @@ function canAccessEnquiry(user, enquiry) {
         return false;
     }
 
-    /* Super Admin */
-    if (user.role === "super_admin") {
+    /* Overall Admin */
+    if (user.isOverallAdmin === true || user.role === "super_admin") {
         return true;
     }
 
-    /* Finance Manager does not operate desk enquiries */
-    if (user.role === "finance_manager") {
-        return false;
-    }
-
-    return enquiry.desk === user.desk;
+    return Boolean(
+        hasPermission(user, "enquiries.read") &&
+        canAccessDesk(user, enquiry.desk || enquiry.deskId)
+    );
 }
 
 
@@ -83,18 +86,17 @@ function getAccessibleEnquiries(user, enquiries) {
         return [];
     }
 
-    /* Super Admin sees everything */
-    if (user.role === "super_admin") {
+    /* Overall Admin sees everything */
+    if (user.isOverallAdmin === true || user.role === "super_admin") {
         return enquiries;
     }
 
-    /* Finance Manager does not receive desk enquiry access */
-    if (user.role === "finance_manager") {
+    if (!hasPermission(user, "enquiries.read")) {
         return [];
     }
 
     return enquiries.filter(
-        enquiry => enquiry.desk === user.desk
+        enquiry => canAccessEnquiry(user, enquiry)
     );
 }
 
@@ -109,10 +111,7 @@ function canAccessFinance(user) {
         return false;
     }
 
-    return (
-        user.role === "super_admin" ||
-        user.role === "finance_manager"
-    );
+    return hasPermission(user, "finance.read");
 }
 
 
@@ -139,14 +138,13 @@ function getAccessibleDesks(user) {
         return [];
     }
 
-    /* Super Admin */
-    if (user.role === "super_admin") {
-        return LORDBLESS_ACCESS_DATA.desks;
+    if (Array.isArray(user.desks)) {
+        return user.desks;
     }
 
-    /* Finance Manager */
-    if (user.role === "finance_manager") {
-        return [];
+    /* Development fixture compatibility only. */
+    if (user.isOverallAdmin === true || user.role === "super_admin") {
+        return LORDBLESS_ACCESS_DATA.desks;
     }
 
     const desk = getDesk(user.desk);
@@ -160,6 +158,16 @@ function getAccessibleDesks(user) {
    --------------------------------------------------------- */
 
 function getRoleLabel(roleId) {
+
+    const labels = {
+        overall_admin: "Overall Admin",
+        finance_manager: "Finance Manager",
+        desk_staff: "Desk Staff"
+    };
+
+    if (labels[roleId]) {
+        return labels[roleId];
+    }
 
     const role = getRole(roleId);
 
@@ -201,9 +209,13 @@ function getAccessSummary(user) {
         };
     }
 
+    const deskSummary = Array.isArray(user.desks) && user.desks.length
+        ? user.desks.map(desk => desk.name || desk.code).join(", ")
+        : getDeskLabel(user.desk);
+
     return {
         role: getRoleLabel(user.role),
-        desk: getDeskLabel(user.desk),
+        desk: user.isOverallAdmin ? "All Desks" : deskSummary,
         finance: canAccessFinance(user)
     };
 }

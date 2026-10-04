@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    <title>Portal Login | LORDBLESS CONSULTANCY</title>
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        .portal-login-main {
+            min-height: calc(100vh - 90px);
+            display: grid;
+            place-items: center;
+            padding: 48px 20px;
+            background: var(--brand-navy-deep, #0b1730);
+        }
+        .portal-login-card {
+            width: min(100%, 460px);
+            padding: 38px;
+            border-radius: 16px;
+            background: #fff;
+            box-shadow: 0 24px 70px rgba(0, 0, 0, .24);
+        }
+        .portal-login-card h1 {
+            margin: 10px 0;
+            color: var(--brand-navy-deep, #0b1730);
+        }
+        .portal-login-description,
+        #portal-auth-message {
+            color: #667085;
+            line-height: 1.6;
+        }
+        .portal-login-card label {
+            display: block;
+            margin: 18px 0 7px;
+            color: #263247;
+            font-weight: 600;
+        }
+        .portal-login-card input {
+            width: 100%;
+            min-height: 48px;
+            padding: 10px 12px;
+            border: 1px solid #d7dce4;
+            border-radius: 7px;
+            font: inherit;
+        }
+        .portal-login-card button[type="submit"] {
+            width: 100%;
+            margin-top: 22px;
+            cursor: pointer;
+        }
+        #portal-auth-message {
+            min-height: 24px;
+            margin: 16px 0 0;
+        }
+        #portal-auth-message[data-error="true"] {
+            color: #9b1c1c;
+        }
+        #portal-sign-out {
+            margin-top: 12px;
+            cursor: pointer;
+        }
+        @media (max-width: 560px) {
+            .portal-login-card { padding: 28px 22px; }
+        }
+    </style>
+</head>
+<body>
+    <header class="site-header">
+        <div class="container header-container">
+            <a href="index.html" class="brand" aria-label="LORDBLESS CONSULTANCY home">
+                <img
+                    src="images/service-images/lordbless-header-logo.png"
+                    alt="LORDBLESS CONSULTANCY"
+                    class="brand-logo"
+                >
+            </a>
+            <a href="index.html" class="nav-cta">Back to Website</a>
+        </div>
+    </header>
+
+    <main class="portal-login-main">
+        <section class="portal-login-card" aria-labelledby="portal-login-title">
+            <div class="topbar-label">CLIENT &amp; ADMIN LOGIN</div>
+            <h1 id="portal-login-title">LORDBLESS Portal</h1>
+            <p class="portal-login-description">
+                Sign in with your LORDBLESS account to continue to your portal.
+            </p>
+
+            <form id="portal-login-form">
+                <label for="portal-email">Email</label>
+                <input
+                    id="portal-email"
+                    name="email"
+                    type="email"
+                    autocomplete="username"
+                    required
+                >
+
+                <label for="portal-password">Password</label>
+                <input
+                    id="portal-password"
+                    name="password"
+                    type="password"
+                    autocomplete="current-password"
+                    required
+                >
+
+                <button class="nav-cta" type="submit" disabled>
+                    Sign In
+                </button>
+            </form>
+
+            <p id="portal-auth-message" role="status" aria-live="polite">
+                Checking your session...
+            </p>
+            <button id="portal-sign-out" class="nav-cta" type="button" hidden>
+                Sign Out
+            </button>
+        </section>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="js/supabase-config.js"></script>
+    <script src="js/portal-login.js"></script>
+</body>
+</html>

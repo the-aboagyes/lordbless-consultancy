@@ -8,12 +8,9 @@
  * Premium Client Dashboard
  *
  * IMPORTANT:
- * - Mock/local data only.
- * - No Supabase connection.
- * - One permanent client account.
- * - Multiple client journeys.
- * - Permanent client document library.
- * - Documents are NOT uploaded to Supabase yet.
+ * - Supabase Auth and the linked public.clients profile establish identity.
+ * - Journeys, finance, messages, and document content remain prototype data.
+ * - Do not use prototype records to determine authenticated ownership.
  * ============================================================
  */
 
@@ -22,15 +19,15 @@
    CLIENT ACCOUNT
    ============================================================ */
 
-   const LORDBLESS_CLIENT_ID =
+   const LORDBLESS_DEVELOPMENT_CLIENT_ID =
     "LBC-CLIENT-0001";
 
 const LORDBLESS_SHARED_CLIENT =
     window.LORDBLESS_PORTAL_MOCK_DATA.getClient(
-        LORDBLESS_CLIENT_ID
+        LORDBLESS_DEVELOPMENT_CLIENT_ID
     );
 
-const LORDBLESS_CLIENT_ACCOUNT = {
+const LORDBLESS_CLIENT_DEVELOPMENT_FIXTURE = {
 
     id:
         LORDBLESS_SHARED_CLIENT.id,
@@ -258,21 +255,32 @@ const LORDBLESS_CLIENT_ACCOUNT = {
 
 };
 
+const LORDBLESS_CLIENT_ACCOUNT = {
+    id: null,
+    fullName: "",
+    email: "",
+    whatsapp: "",
+    currentCountry: "",
+    nationality: "",
+    dateOfBirth: "",
+    passportNumber: "",
+    passportIssueDate: "",
+    passportExpiryDate: "",
+    currentTransactionId: null,
+    documents: [],
+    transactions: []
+};
+
 /* ============================================================
    SHARED PORTAL MOCK DATA
    ============================================================
 
-   The Client Portal now uses the shared mock client and
-   journey reference data from portalMockData.js.
+   Development-only helper for the shared mock client and
+   journey reference data. Authenticated startup does not call it.
 
    This is temporary development infrastructure.
 
-   Later:
-       Supabase Auth
-             ↓
-       Supabase Client
-             ↓
-       Supabase Journeys
+   Remaining journey data will be migrated separately.
    ============================================================ */
 
 function applySharedPortalMockClient() {
@@ -297,13 +305,13 @@ function applySharedPortalMockClient() {
 
     const sharedClient =
         window.LORDBLESS_PORTAL_MOCK_DATA.getClient(
-            LORDBLESS_CLIENT_ID
+            LORDBLESS_DEVELOPMENT_CLIENT_ID
         );
 
 
     const sharedJourneys =
         window.LORDBLESS_PORTAL_MOCK_DATA.getClientJourneys(
-            LORDBLESS_CLIENT_ID
+            LORDBLESS_DEVELOPMENT_CLIENT_ID
         );
 
 
@@ -467,9 +475,6 @@ function applySharedPortalMockClient() {
    APPLY SHARED MOCK CLIENT
    ============================================================ */
 
-applySharedPortalMockClient();
-
-
 /* ============================================================
    JOURNEY STEPS
    ============================================================ */
@@ -563,6 +568,175 @@ function initialiseClientPortal() {
     showView(
         "overview"
     );
+
+}
+
+
+let clientPortalInitialised = false;
+let clientAuthLookupUserId = null;
+
+
+function applyAuthenticatedClientRecord(client) {
+
+    Object.assign(
+        LORDBLESS_CLIENT_ACCOUNT,
+        {
+            id: client.id,
+            fullName: client.full_name || "",
+            email: client.email || "",
+            whatsapp: client.whatsapp || "",
+            currentCountry: client.current_country || "",
+            nationality: client.nationality || "",
+            dateOfBirth: "",
+            passportNumber: "",
+            passportIssueDate: "",
+            passportExpiryDate: "",
+            currentTransactionId: null,
+            transactions: [],
+            documents: []
+        }
+    );
+
+}
+
+
+async function handleClientPortalSession(session) {
+
+    if (!session?.user) {
+        window.location.replace("../portal-login.html");
+        return;
+    }
+
+    if (clientAuthLookupUserId === session.user.id) {
+        return;
+    }
+
+    clientAuthLookupUserId = session.user.id;
+
+    try {
+        let { data: account, error: accountError } =
+            await lordblessSupabase
+                .from("client_accounts")
+                .select("client_id, access_status")
+                .eq("auth_user_id", session.user.id)
+                .maybeSingle();
+
+        if (accountError) throw accountError;
+
+        if (account?.access_status === "invited") {
+            const { error: activationError } =
+                await lordblessSupabase.rpc("activate_client_account");
+            if (activationError) throw activationError;
+
+            const refreshedAccount =
+                await lordblessSupabase
+                    .from("client_accounts")
+                    .select("client_id, access_status")
+                    .eq("auth_user_id", session.user.id)
+                    .maybeSingle();
+
+            if (refreshedAccount.error) throw refreshedAccount.error;
+            account = refreshedAccount.data;
+        }
+
+        if (!account || account.access_status !== "active") {
+            clientAuthLookupUserId = null;
+            window.location.replace(
+                "../portal-login.html?error=client-access-inactive"
+            );
+            return;
+        }
+
+        const { data: client, error: clientError } =
+            await lordblessSupabase
+                .from("clients")
+                .select("id, full_name, email, whatsapp, current_country, nationality")
+                .eq("id", account.client_id)
+                .maybeSingle();
+
+        if (clientError) throw clientError;
+        if (!client || client.id !== account.client_id) {
+            throw new Error("The linked client profile is unavailable.");
+        }
+
+        applyAuthenticatedClientRecord(client);
+
+        const clientApp =
+            document.getElementById("client-portal-app");
+
+        if (clientApp) {
+            clientApp.style.display = "";
+        }
+
+        if (!clientPortalInitialised) {
+            clientPortalInitialised = true;
+            initialiseClientPortal();
+        }
+    } catch (error) {
+        clientAuthLookupUserId = null;
+        console.error(
+            "LORDBLESS CLIENT ACCOUNT RESOLUTION ERROR:",
+            error
+        );
+        window.location.replace("../portal-login.html?error=client-account-unavailable");
+    }
+
+}
+
+
+async function initialiseClientAuth() {
+
+    lordblessSupabase.auth.onAuthStateChange(
+        (event, session) => {
+
+            if (event === "INITIAL_SESSION") {
+                return;
+            }
+
+            void handleClientPortalSession(session);
+
+        }
+    );
+
+    try {
+        const { data, error } =
+            await lordblessSupabase.auth.getSession();
+
+        if (error) throw error;
+
+        await handleClientPortalSession(
+            data?.session || null
+        );
+    } catch (error) {
+        console.error(
+            "LORDBLESS CLIENT AUTH SESSION ERROR:",
+            error
+        );
+        window.location.assign(
+            "../portal-login.html"
+        );
+    }
+
+}
+
+
+async function signOutClient() {
+
+    try {
+        const { error } =
+            await lordblessSupabase.auth.signOut();
+
+        if (error) throw error;
+
+        window.location.assign(
+            "../portal-login.html"
+        );
+    } catch (error) {
+        showModal(
+            "Unable to Sign Out",
+            error?.message || String(error)
+        );
+    }
 
 }
 
@@ -3099,11 +3273,7 @@ function initialiseActions() {
                         ) {
 
                             event.preventDefault();
-
-                            showModal(
-                                "Sign Out",
-                                "Secure client authentication will be connected in a later stage. This is currently a frontend preview."
-                            );
+                            signOutClient();
 
                         }
 
@@ -3706,5 +3876,5 @@ window.closePortalModal =
 
 document.addEventListener(
     "DOMContentLoaded",
-    initialiseClientPortal
+    initialiseClientAuth
 );
