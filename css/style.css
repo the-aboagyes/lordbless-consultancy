@@ -2342,6 +2342,22 @@ textarea {
     }
 
 
+    .main-navigation.is-open {
+        position: absolute;
+        top: 100%;
+        left: 16px;
+        right: 16px;
+
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 16px;
+
+        padding: 18px 20px;
+        background: var(--brand-navy-deep, #0b1730);
+    }
+
+
     .mobile-menu-button {
         display:
             block;
