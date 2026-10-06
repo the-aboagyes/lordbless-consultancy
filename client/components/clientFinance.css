@@ -24,6 +24,30 @@
     box-sizing: border-box;
 }
 
+.lbc-client-finance-submit-payment {
+    align-self: flex-start;
+    padding: 11px 16px;
+    border: 0;
+    border-radius: 8px;
+    background: #14243a;
+    color: #fff;
+    font: inherit;
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    cursor: pointer;
+}
+
+.lbc-client-finance-submit-payment:hover {
+    background: #203b5d;
+}
+
+.lbc-client-finance-verification-message {
+    margin: 12px 0 0;
+    color: #596575;
+    line-height: 1.6;
+}
+
 
 /* ============================================================
    HEADER

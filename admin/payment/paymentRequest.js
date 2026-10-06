@@ -373,6 +373,8 @@
     function createPaymentRequest(data) {
 
         data = data || {};
+        const isInitialAssessment =
+            data.purpose === "initial_assessment_consultation";
 
 
         if (!bridgeAvailable()) {
@@ -399,7 +401,7 @@
         }
 
 
-        if (!data.transactionId) {
+        if (!data.transactionId && !isInitialAssessment) {
 
             console.error(
                 COMPONENT_NAME +
@@ -510,6 +512,10 @@
                     data.requestType ||
                     "Service Fee",
 
+                purpose:
+                    data.purpose ||
+                    null,
+
                 title:
                     data.title ||
                     "",
@@ -530,6 +536,15 @@
 
                 amount:
                     Number(data.amount) || 0,
+
+                subtotal:
+                    Number(data.subtotal ?? data.amount) || 0,
+
+                discount:
+                    Number(data.discount) || 0,
+
+                total:
+                    Number(data.total ?? data.amount) || 0,
 
                 currency:
                     data.currency ||
@@ -795,6 +810,9 @@
             return null;
         }
 
+        const isInitialAssessment =
+            formData.purpose === "initial_assessment_consultation";
+
 
         let selectedServices = [];
 
@@ -917,6 +935,10 @@
                 formData.requestType ||
                 "Service Fee",
 
+            purpose:
+                formData.purpose ||
+                null,
+
             title,
 
             description,
@@ -963,6 +985,21 @@
 
             amount:
                 Number(
+                    formData.amount
+                ) || 0,
+
+            subtotal:
+                Number(
+                    formData.subtotal ||
+                    formData.amount
+                ) || 0,
+
+            discount:
+                Number(formData.discount) || 0,
+
+            total:
+                Number(
+                    formData.total ||
                     formData.amount
                 ) || 0,
 
@@ -1092,8 +1129,11 @@
                     ]
                     : [];
 
+        const isInitialAssessment =
+            formData.purpose === "initial_assessment_consultation";
 
-        if (!selectedServices.length) {
+
+        if (!selectedServices.length && !isInitialAssessment) {
 
             showFormMessage(
                 form,
@@ -1103,6 +1143,28 @@
 
             return null;
 
+        }
+
+        if (isInitialAssessment) {
+            const discount = Number(formData.discount) || 0;
+
+            if (discount < 0 || discount >= 1000) {
+                showFormMessage(
+                    form,
+                    "The discount must be less than GHS 1,000. A zero-value payment request was not created.",
+                    "error"
+                );
+                return null;
+            }
+
+            const finalAmount = 1000 - discount;
+            formData.subtotal = "1000";
+            formData.total = String(finalAmount);
+            formData.amount = String(finalAmount);
+            formData.currency = "GHS";
+            formData.title = "Initial Assessment & 30-Minute Consultation";
+            formData.description = "Initial Assessment & 30-Minute Consultation";
+            formData.requestType = "Initial Assessment & 30-Minute Consultation";
         }
 
 
@@ -1708,6 +1770,9 @@
         settings =
             settings || {};
 
+        const isInitialAssessment =
+            settings.purpose === "initial_assessment_consultation";
+
 
         injectStyles();
 
@@ -1752,7 +1817,7 @@
         }
 
 
-        if (!transactionId) {
+        if (!transactionId && !isInitialAssessment) {
 
             console.error(
                 COMPONENT_NAME +
@@ -1765,8 +1830,12 @@
 
 
         const currency =
-            settings.currency ||
-            DEFAULT_CURRENCY;
+            isInitialAssessment
+                ? "GHS"
+                : settings.currency || DEFAULT_CURRENCY;
+
+        const initialAssessmentDescription =
+            "Initial Assessment & 30-Minute Consultation";
 
 
         /*
@@ -1813,12 +1882,13 @@
                         id="lordbless-payment-title"
                         class="lordbless-payment-title"
                     >
-                        Request Payment
+                        ${isInitialAssessment ? "Initial Assessment & 30-Minute Consultation" : "Request Payment"}
                     </h2>
 
                     <p class="lordbless-payment-subtitle">
-                        Create a professional payment request
-                        for this client's journey or service.
+                        ${isInitialAssessment
+                            ? "Create the initial assessment and consultation payment request. No journey is required."
+                            : "Create a professional payment request for this client's journey or service."}
                     </p>
 
                 </div>
@@ -1863,6 +1933,18 @@
 
                         <input
                             type="hidden"
+                            name="purpose"
+                            value="${isInitialAssessment ? "initial_assessment_consultation" : ""}"
+                        >
+
+                        <input
+                            type="hidden"
+                            name="title"
+                            value="${isInitialAssessment ? escapeHtml(initialAssessmentDescription) : ""}"
+                        >
+
+                        <input
+                            type="hidden"
                             name="transactionTitle"
                             value="${escapeHtml(journeyTitle)}"
                         >
@@ -1876,7 +1958,7 @@
                         <input
                             type="hidden"
                             name="requestType"
-                            value="Service Fee"
+                            value="${isInitialAssessment ? escapeHtml(initialAssessmentDescription) : "Service Fee"}"
                         >
 
 
@@ -1901,13 +1983,14 @@
                             <div class="lordbless-payment-context">
 
                                 <span class="lordbless-payment-context-label">
-                                    Journey
+                                    ${isInitialAssessment ? "Payment Purpose" : "Journey"}
                                 </span>
 
                                 <span class="lordbless-payment-context-value">
                                     ${escapeHtml(
-                                        journeyTitle ||
-                                        "Client Journey"
+                                        isInitialAssessment
+                                            ? initialAssessmentDescription
+                                            : journeyTitle || "Client Journey"
                                     )}
                                 </span>
 
@@ -1916,7 +1999,7 @@
                         </div>
 
 
-                        <div class="lordbless-payment-section">
+                        ${isInitialAssessment ? "" : `<div class="lordbless-payment-section">
 
                             <h3 class="lordbless-payment-section-title">
                                 Service / Support
@@ -1997,7 +2080,7 @@
 
                             </div>
 
-                        </div>
+                        </div>`}
 
 
                         <div class="lordbless-payment-field">
@@ -2010,15 +2093,22 @@
                                 name="description"
                                 rows="3"
                                 placeholder="Describe exactly what this payment covers..."
-                            ></textarea>
+                                ${isInitialAssessment ? "readonly" : ""}
+                            >${isInitialAssessment ? escapeHtml(initialAssessmentDescription) : ""}</textarea>
 
                         </div>
 
 
                         <div class="lordbless-payment-field">
 
+                            ${isInitialAssessment ? `
+                                <p class="lordbless-payment-standard-fee">
+                                    Standard fee: GHS 1,000.00
+                                </p>
+                            ` : ""}
+
                             <label>
-                                Amount
+                                ${isInitialAssessment ? "Final Amount Due" : "Amount"}
                             </label>
 
 
@@ -2026,17 +2116,41 @@
                                 class="lordbless-payment-amount-row"
                             >
 
-                                <input
-                                    type="number"
-                                    name="amount"
-                                    min="0.01"
-                                    step="0.01"
-                                    placeholder="0.00"
-                                    required
-                                >
+                                ${isInitialAssessment ? `
+                                    <input type="hidden" name="subtotal" value="1000">
+                                    <input
+                                        type="number"
+                                        name="discount"
+                                        min="0"
+                                        max="999.99"
+                                        step="0.01"
+                                        value="0"
+                                        aria-label="Discount amount in Ghana cedis"
+                                        placeholder="Discount"
+                                    >
+                                    <input
+                                        type="number"
+                                        name="amount"
+                                        min="0.01"
+                                        step="0.01"
+                                        value="1000"
+                                        readonly
+                                        required
+                                    >
+                                    <input type="hidden" name="currency" value="GHS">
+                                ` : `
+                                    <input
+                                        type="number"
+                                        name="amount"
+                                        min="0.01"
+                                        step="0.01"
+                                        placeholder="0.00"
+                                        required
+                                    >
+                                `}
 
 
-                                <select
+                                ${isInitialAssessment ? "" : `<select
                                     name="currency"
                                 >
 
@@ -2100,7 +2214,7 @@
                                         CAD
                                     </option>
 
-                                </select>
+                                </select>`}
 
                             </div>
 
@@ -2228,6 +2342,11 @@
                 '[name="amount"]'
             );
 
+        const discountInput =
+            form.querySelector(
+                '[name="discount"]'
+            );
+
 
         const currencySelect =
             form.querySelector(
@@ -2248,10 +2367,15 @@
             }
 
 
+            if (isInitialAssessment && discountInput) {
+                const discount = Number(discountInput.value) || 0;
+                amountInput.value = String(Math.max(0, 1000 - discount));
+            }
+
             summary.textContent =
                 formatAmount(
                     amountInput.value,
-                    currencySelect.value
+                    currencySelect?.value || currency
                 );
 
         }
@@ -2262,11 +2386,18 @@
             updateSummary
         );
 
+        discountInput?.addEventListener(
+            "input",
+            updateSummary
+        );
 
-        currencySelect.addEventListener(
+
+        currencySelect?.addEventListener(
             "change",
             updateSummary
         );
+
+        updateSummary();
 
 
         /*

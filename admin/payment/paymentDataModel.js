@@ -343,6 +343,10 @@
                 data.requestType ||
                 LORDBLESS_PAYMENT_REQUEST_TYPES.SERVICE_FEE,
 
+            purpose:
+                data.purpose ||
+                null,
+
             title:
                 data.title ||
                 "Payment Request",

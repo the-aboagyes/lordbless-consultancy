@@ -624,7 +624,22 @@
 
 
         return requests
-            .filter(isConfirmedRequest)
+            .filter(request => {
+
+                if (
+                    request.purpose === "initial_assessment_consultation"
+                ) {
+                    return String(request.status || "")
+                            .trim()
+                            .toLowerCase() === "paid" &&
+                        String(request.verificationStatus || "")
+                            .trim()
+                            .toLowerCase() === "verified";
+                }
+
+                return isConfirmedRequest(request);
+
+            })
             .map(
                 function (request) {
 
@@ -1170,10 +1185,20 @@
                         );
 
 
+                    const isInitialAssessment =
+                        request.purpose === "initial_assessment_consultation";
+
+                    const isAwaitingVerification =
+                        status === "awaiting_verification" ||
+                        String(request.verificationStatus || "").toLowerCase() === "pending" ||
+                        Boolean(request.clientPaymentSubmittedAt);
+
                     const statusLabel =
-                        status === "overdue"
-                            ? "Overdue"
-                            : "Payment requested";
+                        isAwaitingVerification
+                            ? "Awaiting Verification"
+                            : status === "overdue"
+                                ? "Overdue"
+                                : "Payment requested";
 
 
                     return `
@@ -1236,6 +1261,14 @@
                                         : ""
                                 }
 
+                                ${isInitialAssessment && isAwaitingVerification ? `
+                                    <p class="lbc-client-finance-verification-message">
+                                        We have received your payment submission. Our Finance Team will verify the payment before your full Client Portal is activated.
+                                        <br><br>
+                                        You do not need to make another payment while this payment is being reviewed.
+                                    </p>
+                                ` : ""}
+
                             </div>
 
 
@@ -1257,6 +1290,17 @@
                                 </strong>
 
                             </div>
+
+                            ${isInitialAssessment && !isAwaitingVerification ? `
+                                <button
+                                    type="button"
+                                    class="lbc-client-finance-submit-payment"
+                                    data-finance-action="submit-payment"
+                                    data-payment-request-id="${escapeHTML(request.id || "")}"
+                                >
+                                    I HAVE MADE THIS PAYMENT
+                                </button>
+                            ` : ""}
 
                         </article>
                     `;
@@ -2380,6 +2424,90 @@
 function bindEvents(
     container
 ) {
+
+    container
+        .querySelectorAll('[data-finance-action="submit-payment"]')
+        .forEach(button => {
+            button.addEventListener("click", () => {
+                const requestId = button.dataset.paymentRequestId;
+                const request = state.paymentRequests.find(
+                    item => item.id === requestId
+                );
+                const clientId = getClientId(state.client);
+                const bridge = window.LORDBLESS_PAYMENT_BRIDGE;
+                const latestRequest =
+                    request &&
+                    bridge &&
+                    typeof bridge.getPaymentRequest === "function"
+                        ? bridge.getPaymentRequest(request.id)
+                        : null;
+
+                if (
+                    !latestRequest ||
+                    !clientId ||
+                    latestRequest.clientId !== clientId ||
+                    latestRequest.purpose !== "initial_assessment_consultation" ||
+                    !bridge ||
+                    typeof bridge.updatePaymentRequest !== "function"
+                ) {
+                    showMessage("This payment request could not be submitted for verification.", true);
+                    return;
+                }
+
+                const requestStatus =
+                    String(latestRequest.status || "")
+                        .trim()
+                        .toLowerCase()
+                        .replace(/[\s-]+/g, "_");
+
+                const verificationStatus =
+                    String(latestRequest.verificationStatus || "")
+                        .trim()
+                        .toLowerCase();
+
+                if (
+                    ["paid", "rejected", "cancelled", "canceled"].includes(requestStatus) ||
+                    ["verified", "rejected"].includes(verificationStatus)
+                ) {
+                    return;
+                }
+
+                if (
+                    [
+                        "awaiting_verification",
+                        "pending",
+                        "submitted",
+                        "payment_submitted",
+                        "under_review"
+                    ].includes(requestStatus) ||
+                    ["pending", "submitted", "under_review"].includes(verificationStatus) ||
+                    latestRequest.clientPaymentSubmittedAt
+                ) {
+                    return;
+                }
+
+                const updatedRequest = bridge.updatePaymentRequest(latestRequest.id, {
+                    status: "awaiting_verification",
+                    verificationStatus: "pending",
+                    clientPaymentSubmittedAt:
+                        latestRequest.clientPaymentSubmittedAt || new Date().toISOString()
+                });
+
+                if (!updatedRequest) {
+                    showMessage("Your payment submission could not be saved. Please try again.", true);
+                    return;
+                }
+
+                const paymentRequests = state.paymentRequests.map(item =>
+                    item.id === updatedRequest.id ? updatedRequest : item
+                );
+
+                render(state.container, {
+                    ...state,
+                    paymentRequests
+                });
+            });
+        });
 
     const toggle =
         container.querySelector(

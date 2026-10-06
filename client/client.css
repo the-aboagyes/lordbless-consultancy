@@ -6510,3 +6510,74 @@ input:focus-visible {
 /* =========================================================
    END OF LORDBLESS CLIENT PORTAL CSS
    ========================================================= */
+
+.client-onboarding-panel {
+    margin: 26px 0;
+    padding: clamp(22px, 4vw, 34px);
+    border: 1px solid #e4e8ee;
+    border-left: 4px solid #c8a44d;
+    border-radius: 14px;
+    background: #fff;
+    box-shadow: 0 12px 32px rgba(16, 34, 58, 0.06);
+}
+
+.client-onboarding-panel[hidden] {
+    display: none;
+}
+
+.client-onboarding-panel h2,
+.client-onboarding-panel h3 {
+    margin: 0 0 10px;
+    color: #14243a;
+}
+
+.client-onboarding-panel p {
+    max-width: 850px;
+    color: #596575;
+    line-height: 1.65;
+}
+
+.client-onboarding-status {
+    display: inline-flex;
+    margin: 10px 0 14px;
+    padding: 8px 12px;
+    border-radius: 999px;
+    background: #f8f2e4;
+    color: #755a1f;
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+}
+
+.client-onboarding-includes {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 8px 24px;
+    margin: 16px 0 22px;
+    padding-left: 20px;
+    color: #39485b;
+}
+
+.client-onboarding-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 20px;
+}
+
+.client-onboarding-lock-message,
+.client-onboarding-verification-message {
+    padding: 14px 16px;
+    border-radius: 10px;
+    background: #f7f8fa;
+    color: #39485b;
+}
+
+.client-nav-item.is-locked::after {
+    content: "LOCKED";
+    margin-left: auto;
+    color: #c8a44d;
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+}

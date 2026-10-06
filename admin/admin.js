@@ -14,6 +14,12 @@ const state = {
 
     enquiries: [],
 
+    journeys: [],
+
+    journeyLoadError: "",
+
+    journeyAssignees: [],
+
     enquiryDataSource: "loading",
 
     enquiryLoadError: "",
@@ -185,6 +191,9 @@ function applyAdminAuthSession(session) {
         window.LORDBLESS_CURRENT_USER = null;
 
         state.enquiries = [];
+        state.journeys = [];
+        state.journeyLoadError = "";
+        state.journeyAssignees = [];
         state.enquiryDataSource = "loading";
         state.enquiryLoadError = "";
 
@@ -210,10 +219,13 @@ function applyAdminAuthSession(session) {
     state.authReady = false;
     state.authResolvingUserId = authUser.id;
     state.authError = "";
+    state.journeys = [];
+    state.journeyLoadError = "";
+    state.journeyAssignees = [];
     showAdminAuthGate("Resolving your staff access...");
 
     void resolveAdminAccessContext(authUser)
-        .then(identity => {
+        .then(async identity => {
 
             if (state.authUser?.id !== authUser.id) {
                 return;
@@ -256,6 +268,10 @@ function applyAdminAuthSession(session) {
                     `;
                 }
                 return;
+            }
+
+            if (hasPermission(identity, "journeys.read")) {
+                await loadAdminJourneys();
             }
 
             state.currentView = allowedView;
@@ -1974,9 +1990,11 @@ function renderFinanceView(
 
                                                             <td>
                                                                 ${escapeHTML(
-                                                                    request.transactionTitle ||
-                                                                    request.enquiryReference ||
-                                                                    "Journey"
+                                                                    request.purpose === "initial_assessment_consultation"
+                                                                        ? "No journey assigned"
+                                                                        : request.transactionTitle ||
+                                                                            request.enquiryReference ||
+                                                                            "Journey"
                                                                 )}
                                                             </td>
 
@@ -2590,12 +2608,28 @@ function getAdminClients() {
     }
 
 
-    const clients =
+    const fixtureClients =
         Array.isArray(
             LORDBLESS_ADMIN_DOCUMENT_DATA.clients
         )
             ? LORDBLESS_ADMIN_DOCUMENT_DATA.clients
             : [];
+
+    const enquiryClients = state.enquiries
+        .map(enquiry => enquiry.client)
+        .filter(client => client?.id)
+        .map(client => ({
+            ...client,
+            name: client.name || client.fullName || "Client",
+            fullName: client.fullName || client.name || "Client"
+        }));
+
+    const clients = [
+        ...fixtureClients,
+        ...enquiryClients.filter(client =>
+            !fixtureClients.some(fixture => fixture.id === client.id)
+        )
+    ];
 
     return clients.filter(
         client =>
@@ -2610,14 +2644,9 @@ function getAdminClients() {
 /* =========================================================
    DESK ACCESS BOUNDARY
 
-   A journey belongs to one operational desk.
-   Desk-level users may only see journeys and related
-   work belonging to their assigned desk.
-
-   Super Admin / All Desks users may see everything.
-
-   This is a UI visibility filter for prototype records only.
-   Supabase RLS is authoritative for migrated database records.
+   This UI filter preserves prototype journey fixtures.
+   Persistent journey rows are scoped by Supabase RLS using
+   client access or their optional internal staff/desk assignment.
 ========================================================= */
 
 function getCurrentAdminDesk() {
@@ -2747,7 +2776,16 @@ function canCurrentAdminAccessJourney(
         return true;
     }
 
+    if (journey.isSupabase === true) {
+        // These rows have already been scoped by the database RLS policy.
+        return true;
+    }
+
     const user = getCurrentUser();
+    if (journey.internalAssigneeId === user?.id) {
+        return true;
+    }
+
     const allowedDesks = Array.isArray(user?.deskIds)
         ? user.deskIds
         : [getCurrentAdminDesk()].filter(Boolean);
@@ -2755,6 +2793,127 @@ function canCurrentAdminAccessJourney(
     return allowedDesks.includes(
         getJourneyDeskId(journey)
     );
+
+}
+
+
+function mapSupabaseJourney(record) {
+
+    const assignedDesk =
+        state.adminIdentity?.desks?.find(
+            desk => desk.id === record.desk_id
+        );
+
+    return {
+        id: record.id,
+        clientId: record.client_id,
+        enquiryId: record.enquiry_id || null,
+        journeyType: record.journey_type || "",
+        title: record.title || "",
+        destination: record.destination || "",
+        service: record.service || "",
+        status: record.status || "planning",
+        internalAssigneeId: record.internal_assignee_id || null,
+        deskId: record.desk_id || null,
+        desk: assignedDesk?.code || "",
+        createdAt: record.created_at || "",
+        updatedAt: record.updated_at || "",
+        isSupabase: true
+    };
+
+}
+
+
+async function loadAdminJourneys(clientId = null) {
+
+    if (
+        !state.adminIdentity ||
+        !hasPermission(state.adminIdentity, "journeys.read")
+    ) {
+        return [];
+    }
+
+    const requestUserId = state.adminIdentity.id;
+
+    let query = lordblessSupabase
+        .from("client_journeys_internal_access")
+        .select("*")
+        .order("created_at", { ascending: true });
+
+    if (clientId) {
+        query = query.eq("client_id", clientId);
+    }
+
+    let result;
+    try {
+        result = await query;
+    } catch (error) {
+        if (state.adminIdentity?.id !== requestUserId) return [];
+        state.journeyLoadError = error?.message || String(error);
+        console.error("LORDBLESS ADMIN JOURNEYS SUPABASE ERROR:", error);
+        return [];
+    }
+
+    const { data, error } = result;
+    if (state.adminIdentity?.id !== requestUserId) return [];
+
+    if (error) {
+        state.journeyLoadError = error.message || String(error);
+        console.error("LORDBLESS ADMIN JOURNEYS SUPABASE ERROR:", error);
+        return [];
+    }
+
+    state.journeyLoadError = "";
+    const mapped = (data || []).map(mapSupabaseJourney);
+
+    if (clientId) {
+        state.journeys = [
+            ...state.journeys.filter(item => item.clientId !== clientId),
+            ...mapped
+        ];
+    } else {
+        state.journeys = mapped;
+    }
+
+    return mapped;
+
+}
+
+
+async function loadAdminJourneyAssignees() {
+
+    if (
+        !state.adminIdentity ||
+        !hasPermission(state.adminIdentity, "journeys.write")
+    ) {
+        return [];
+    }
+
+    const requestUserId = state.adminIdentity.id;
+
+    let result;
+    try {
+        result = await lordblessSupabase
+            .from("staff_profiles")
+            .select("user_id, display_name")
+            .eq("active", true)
+            .order("display_name", { ascending: true });
+    } catch (error) {
+        if (state.adminIdentity?.id !== requestUserId) return [];
+        console.error("LORDBLESS JOURNEY ASSIGNEES SUPABASE ERROR:", error);
+        return state.journeyAssignees;
+    }
+
+    const { data, error } = result;
+    if (state.adminIdentity?.id !== requestUserId) return [];
+
+    if (error) {
+        console.error("LORDBLESS JOURNEY ASSIGNEES SUPABASE ERROR:", error);
+        return state.journeyAssignees;
+    }
+
+    state.journeyAssignees = data || [];
+    return state.journeyAssignees;
 
 }
 
@@ -2769,7 +2928,14 @@ function getAdminClientJourneys(
         return [];
     }
 
-    return LORDBLESS_DOCUMENT_JOURNEYS
+    const journeys = [
+        ...state.journeys,
+        ...LORDBLESS_DOCUMENT_JOURNEYS
+    ].filter((journey, index, collection) =>
+        collection.findIndex(item => item.id === journey.id) === index
+    );
+
+    return journeys
         .filter(
             journey =>
                 journey.clientId === clientId
@@ -7009,6 +7175,117 @@ function attachEnquiryRows() {
 }
 
 
+function renderAdminJourneyPanel(clientId) {
+
+    const panel = Array.from(
+        modalContent.querySelectorAll("[data-client-journey-panel]")
+    ).find(item => item.dataset.clientId === clientId);
+
+    if (!panel) return;
+
+    const list = panel.querySelector("[data-client-journey-list]");
+    const journeys = state.journeys.filter(item => item.clientId === clientId);
+
+    if (list) {
+        if (state.journeyLoadError) {
+            list.textContent = `Journeys could not be loaded: ${state.journeyLoadError}`;
+        } else if (!journeys.length) {
+            list.innerHTML = `<p>No journeys have been assigned yet.</p>`;
+        } else {
+            list.innerHTML = journeys.map(journey => `
+                <article class="client-journey-summary">
+                    <strong>${escapeHTML(journey.title)}</strong>
+                    <span>${escapeHTML(journey.journeyType)} · ${escapeHTML(journey.status)}</span>
+                    <span>${escapeHTML(journey.destination || "—")} · ${escapeHTML(journey.service || "—")}</span>
+                    ${journey.internalAssigneeId
+                        ? `<span>Internal assignee: ${escapeHTML(state.journeyAssignees.find(item => item.user_id === journey.internalAssigneeId)?.display_name || "Assigned staff member")}</span>`
+                        : ""}
+                    ${journey.desk
+                        ? `<span>Internal team: ${escapeHTML(state.adminIdentity?.desks?.find(item => item.code === journey.desk)?.name || journey.desk)}</span>`
+                        : ""}
+                </article>
+            `).join("");
+        }
+    }
+
+    const deskSelect = panel.querySelector('[name="desk_id"]');
+    if (deskSelect && deskSelect.dataset.optionsLoaded !== "true") {
+        for (const desk of state.adminIdentity?.desks || []) {
+            const option = document.createElement("option");
+            option.value = desk.id;
+            option.textContent = desk.name || desk.code;
+            deskSelect.appendChild(option);
+        }
+        deskSelect.dataset.optionsLoaded = "true";
+    }
+
+    const assigneeSelect = panel.querySelector('[name="internal_assignee_id"]');
+    if (assigneeSelect && assigneeSelect.dataset.optionsLoaded !== "true") {
+        for (const staff of state.journeyAssignees) {
+            const option = document.createElement("option");
+            option.value = staff.user_id;
+            option.textContent = staff.display_name || "Staff member";
+            assigneeSelect.appendChild(option);
+        }
+        assigneeSelect.dataset.optionsLoaded = "true";
+    }
+
+    const form = panel.querySelector("[data-client-journey-form]");
+    if (!form || form.dataset.bound === "true") return;
+
+    form.dataset.bound = "true";
+    form.addEventListener("submit", async event => {
+        event.preventDefault();
+
+        const submit = form.querySelector('[type="submit"]');
+        const message = panel.querySelector("[data-client-journey-message]");
+        const fields = new FormData(form);
+        const payload = {
+            client_id: clientId,
+            enquiry_id: panel.dataset.enquiryId || null,
+            journey_type: String(fields.get("journey_type") || "").trim(),
+            title: String(fields.get("title") || "").trim(),
+            destination: String(fields.get("destination") || "").trim(),
+            service: String(fields.get("service") || "").trim(),
+            status: String(fields.get("status") || "planning"),
+            internal_assignee_id: String(fields.get("internal_assignee_id") || "") || null,
+            desk_id: String(fields.get("desk_id") || "") || null
+        };
+
+        if (submit) submit.disabled = true;
+        if (message) message.textContent = "Saving Journey…";
+
+        try {
+            const { data, error } = await lordblessSupabase
+                .from("client_journeys")
+                .insert(payload)
+                .select("id, client_id, enquiry_id, journey_type, title, destination, service, status, created_at, updated_at")
+                .single();
+
+            if (error) throw error;
+
+            const created = mapSupabaseJourney({
+                ...data,
+                internal_assignee_id: payload.internal_assignee_id,
+                desk_id: payload.desk_id
+            });
+            state.journeys = [
+                ...state.journeys.filter(item => item.id !== created.id),
+                created
+            ];
+            form.reset();
+            if (message) message.textContent = "Journey created.";
+            renderAdminJourneyPanel(clientId);
+        } catch (error) {
+            if (message) message.textContent = error?.message || String(error);
+        } finally {
+            if (submit) submit.disabled = false;
+        }
+    });
+
+}
+
+
 function openEnquiry(
     reference
 ) {
@@ -7037,6 +7314,80 @@ function openEnquiry(
     enquiryModal.classList.remove(
         "hidden"
     );
+
+    if (
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+            .test(String(enquiry.client?.id || ""))
+    ) {
+        void Promise.all([
+            loadAdminJourneys(enquiry.client.id),
+            loadAdminJourneyAssignees()
+        ]).then(() => renderAdminJourneyPanel(enquiry.client.id));
+    }
+
+    const portalAccessButton =
+        modalContent.querySelector(
+            '[data-enquiry-action="create-client-access"]'
+        );
+
+    if (portalAccessButton) {
+        portalAccessButton.addEventListener("click", async () => {
+            const clientId = portalAccessButton.dataset.clientId;
+            const message = modalContent.querySelector(
+                "[data-enquiry-action-message]"
+            );
+
+            portalAccessButton.disabled = true;
+            if (message) message.textContent = "Creating Client Portal access…";
+
+            try {
+                const result = await requestClientPortalAccess(clientId);
+                if (message) {
+                    message.textContent = result?.already_linked
+                        ? "This client already has linked Client Portal access."
+                        : result?.existing_auth_user_linked
+                            ? "The existing Auth account was linked to this client; no duplicate identity was created."
+                            : "Client Portal invitation created successfully.";
+                }
+                portalAccessButton.textContent = "Portal Access Linked";
+            } catch (error) {
+                if (message) {
+                    message.textContent =
+                        error?.message || "Unable to create Client Portal access.";
+                }
+                portalAccessButton.disabled = false;
+            }
+        });
+    }
+
+    const initialAssessmentPaymentButton =
+        modalContent.querySelector(
+            '[data-enquiry-action="request-initial-assessment-payment"]'
+        );
+
+    if (initialAssessmentPaymentButton) {
+        initialAssessmentPaymentButton.addEventListener("click", () => {
+            if (
+                !window.LORDBLESS_PAYMENT_REQUEST ||
+                typeof window.LORDBLESS_PAYMENT_REQUEST.render !== "function"
+            ) {
+                window.alert("Payment Request engine is not available.");
+                return;
+            }
+
+            closeEnquiryModal();
+            window.LORDBLESS_PAYMENT_REQUEST.render(
+                document.body,
+                enquiry.client,
+                null,
+                {
+                    purpose: "initial_assessment_consultation",
+                    initialAssessment: true,
+                    currency: "GHS"
+                }
+            );
+        });
+    }
 
 
     initialiseStatusManager(

@@ -32,6 +32,29 @@ function isUuid(value: unknown): value is string {
         /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
 }
 
+async function findAuthUserByEmail(serviceClient: any, email: string) {
+    const targetEmail = email.trim().toLowerCase();
+    const perPage = 1000;
+
+    for (let page = 1; ; page += 1) {
+        const { data, error } = await serviceClient.auth.admin.listUsers({
+            page,
+            perPage,
+        });
+
+        if (error) throw error;
+
+        const users = data?.users || [];
+        const match = users.find(
+            (user: { email?: string }) =>
+                user.email?.trim().toLowerCase() === targetEmail,
+        );
+
+        if (match) return match;
+        if (users.length < perPage) return null;
+    }
+}
+
 Deno.serve(async (request) => {
     const origin = request.headers.get("origin") || undefined;
 
@@ -160,7 +183,7 @@ Deno.serve(async (request) => {
     const { data: existingAccount, error: accountLookupError } =
         await serviceClient
             .from("client_accounts")
-            .select("auth_user_id, access_status")
+            .select("auth_user_id, client_id, access_status")
             .eq("client_id", client.id)
             .maybeSingle();
 
@@ -168,50 +191,134 @@ Deno.serve(async (request) => {
         return response(500, { error: "Unable to check existing portal access." }, origin);
     }
     if (existingAccount) {
-        return response(409, { error: "This client already has a linked portal account." }, origin);
+        return response(200, {
+            success: true,
+            already_linked: true,
+            client_id: client.id,
+            access_status: existingAccount.access_status,
+        }, origin);
     }
 
-    const { data: inviteData, error: inviteError } =
-        await serviceClient.auth.admin.inviteUserByEmail(
-            client.email.trim(),
-            { redirectTo: inviteRedirectUrl },
-        );
+    let authUser: any;
+    let sentInvitation = false;
 
-    const invitedUser = inviteData.user;
-    if (inviteError || !invitedUser) {
-        return response(409, { error: inviteError?.message || "The invitation could not be created." }, origin);
+    try {
+        authUser = await findAuthUserByEmail(serviceClient, client.email);
+    } catch {
+        return response(500, { error: "Unable to check for an existing Auth user." }, origin);
     }
 
-    const { error: metadataError } = await serviceClient.auth.admin
-        .updateUserById(invitedUser.id, {
-            app_metadata: {
-                ...invitedUser.app_metadata,
-                portal_role: "client",
-            },
-        });
+    if (!authUser) {
+        const { data: inviteData, error: inviteError } =
+            await serviceClient.auth.admin.inviteUserByEmail(
+                client.email.trim(),
+                { redirectTo: inviteRedirectUrl },
+            );
 
-    if (metadataError) {
-        await serviceClient.auth.admin.deleteUser(invitedUser.id);
-        return response(500, { error: "The invitation role could not be assigned." }, origin);
+        authUser = inviteData?.user || null;
+        sentInvitation = Boolean(authUser && !inviteError);
+
+        // A concurrent request may have created this Auth identity first.
+        if (inviteError || !authUser) {
+            try {
+                authUser = await findAuthUserByEmail(serviceClient, client.email);
+            } catch {
+                return response(500, { error: "Unable to check for an existing Auth user." }, origin);
+            }
+
+            if (!authUser) {
+                return response(409, {
+                    error: inviteError?.message || "The invitation could not be created.",
+                }, origin);
+            }
+        }
+    }
+
+    const { data: staffProfile, error: staffProfileError } = await serviceClient
+        .from("staff_profiles")
+        .select("user_id")
+        .eq("user_id", authUser.id)
+        .maybeSingle();
+
+    if (staffProfileError) {
+        return response(500, { error: "Unable to verify the existing Auth identity." }, origin);
+    }
+    if (staffProfile) {
+        return response(409, { error: "This Auth user is already assigned as LORDBLESS staff." }, origin);
+    }
+
+    const { data: existingUserAccount, error: userAccountError } = await serviceClient
+        .from("client_accounts")
+        .select("client_id, access_status")
+        .eq("auth_user_id", authUser.id)
+        .maybeSingle();
+
+    if (userAccountError) {
+        return response(500, { error: "Unable to verify the existing client link." }, origin);
+    }
+    if (existingUserAccount) {
+        return response(409, {
+            error: existingUserAccount.client_id === client.id
+                ? "This client already has a linked portal account."
+                : "This Auth user is already linked to another client.",
+        }, origin);
     }
 
     const { error: linkError } = await serviceClient
         .from("client_accounts")
         .insert({
-            auth_user_id: invitedUser.id,
+            auth_user_id: authUser.id,
             client_id: client.id,
             access_status: "invited",
             invited_at: new Date().toISOString(),
         });
 
     if (linkError) {
-        await serviceClient.auth.admin.deleteUser(invitedUser.id);
-        return response(500, { error: "The invitation was created but the client link could not be saved." }, origin);
+        // Treat a concurrent successful link as an idempotent retry.
+        const { data: linkedAccount, error: linkedAccountError } = await serviceClient
+            .from("client_accounts")
+            .select("auth_user_id, client_id, access_status")
+            .eq("client_id", client.id)
+            .maybeSingle();
+
+        if (
+            !linkedAccountError &&
+            linkedAccount?.client_id === client.id &&
+            linkedAccount.auth_user_id === authUser.id
+        ) {
+            return response(200, {
+                success: true,
+                already_linked: true,
+                client_id: client.id,
+                access_status: linkedAccount.access_status,
+            }, origin);
+        }
+
+        if (linkedAccount?.client_id === client.id) {
+            return response(409, { error: "This client is already linked to a different Auth user." }, origin);
+        }
+
+        // Keep an unlinked Auth identity so a retry can safely finish linking it.
+        return response(500, { error: "The Auth user exists but the client link could not be saved. Retry the request." }, origin);
     }
 
-    return response(201, {
+    const { error: metadataError } = await serviceClient.auth.admin
+        .updateUserById(authUser.id, {
+            app_metadata: {
+                ...authUser.app_metadata,
+                portal_role: "client",
+            },
+        });
+
+    if (metadataError) {
+        return response(500, { error: "The client link was saved, but Auth metadata could not be updated. Retry the request." }, origin);
+    }
+
+    return response(sentInvitation ? 201 : 200, {
         success: true,
         client_id: client.id,
         access_status: "invited",
+        invitation_sent: sentInvitation,
+        existing_auth_user_linked: !sentInvitation,
     }, origin);
 });

@@ -271,6 +271,15 @@ const LORDBLESS_CLIENT_ACCOUNT = {
     transactions: []
 };
 
+const INITIAL_ASSESSMENT_PURPOSE =
+    "initial_assessment_consultation";
+
+const CLIENT_FULL_ACCESS_LOCK_MESSAGE =
+    "Available after your Initial Assessment & 30-Minute Consultation payment has been verified.";
+
+let clientAccountAccessStatus = null;
+let clientOnboardingNotice = "";
+
 /* ============================================================
    SHARED PORTAL MOCK DATA
    ============================================================
@@ -518,6 +527,11 @@ const CLIENT_VIEW_CONFIG = {
             "My Documents"
     },
 
+    applications: {
+        title:
+            "Applications"
+    },
+
     messages: {
         title:
             "Messages"
@@ -551,6 +565,10 @@ function initialiseClientPortal() {
 
     renderDashboard();
 
+    renderClientOnboardingPanel();
+
+    initialiseClientOnboarding();
+
     renderTransactionHistory();
 
     renderDocuments();
@@ -574,6 +592,9 @@ function initialiseClientPortal() {
 
 let clientPortalInitialised = false;
 let clientAuthLookupUserId = null;
+let clientAuthResolvedUserId = null;
+let clientJourneyLoadError = "";
+let clientApplicationJourneyId = null;
 
 
 function applyAuthenticatedClientRecord(client) {
@@ -600,9 +621,310 @@ function applyAuthenticatedClientRecord(client) {
 }
 
 
+function mapAuthenticatedClientJourney(journey) {
+
+    const status = String(journey.status || "planning").toLowerCase();
+    const statusLabel = {
+        planning: "Planning",
+        active: "In Progress",
+        completed: "Completed",
+        cancelled: "Cancelled"
+    }[status] || "Planning";
+    const serviceLabel = journey.service || journey.journey_type || "Consultancy Service";
+    const category = `${journey.journey_type || ""} ${serviceLabel}`.toLowerCase();
+    const serviceType = category.includes("career")
+        ? "careers"
+        : category.includes("business")
+            ? "business"
+            : category.includes("travel") || category.includes("tourism")
+                ? "travel"
+                : "education";
+
+    return {
+        id: journey.id,
+        clientId: journey.client_id,
+        journeyType: journey.journey_type || "",
+        title: journey.title || serviceLabel,
+        destination: journey.destination || "",
+        service: serviceLabel,
+        services: [serviceType],
+        status: status === "completed"
+            ? "completed"
+            : status === "cancelled"
+                ? "cancelled"
+                : "in_progress",
+        statusLabel,
+        progress: 0,
+        currentStep: status === "planning"
+            ? "plan"
+            : status === "completed" || status === "cancelled"
+                ? "continue"
+                : "prepare",
+        created: journey.created_at || null,
+        updated: journey.updated_at || null,
+        description: "Your LORDBLESS CONSULTANCY service journey.",
+        nextStep: "Your LORDBLESS CONSULTANCY Team will update your journey here."
+    };
+
+}
+
+
+async function loadAuthenticatedClientJourneys(clientId) {
+
+    LORDBLESS_CLIENT_ACCOUNT.transactions = [];
+    LORDBLESS_CLIENT_ACCOUNT.currentTransactionId = null;
+    clientJourneyLoadError = "";
+
+    const { data, error } = await lordblessSupabase
+        .from("client_journeys")
+        .select("id, client_id, journey_type, title, destination, service, status, created_at, updated_at")
+        .eq("client_id", clientId)
+        .order("created_at", { ascending: true });
+
+    if (error) {
+        clientJourneyLoadError = error.message || String(error);
+        console.error("LORDBLESS CLIENT JOURNEYS SUPABASE ERROR:", error);
+        return;
+    }
+
+    const journeys = (data || [])
+        .filter(journey => journey.client_id === clientId)
+        .map(mapAuthenticatedClientJourney);
+
+    LORDBLESS_CLIENT_ACCOUNT.transactions = journeys;
+    LORDBLESS_CLIENT_ACCOUNT.currentTransactionId =
+        journeys.find(journey => journey.status === "in_progress")?.id ||
+        journeys[0]?.id ||
+        null;
+    clientApplicationJourneyId = LORDBLESS_CLIENT_ACCOUNT.currentTransactionId;
+
+}
+
+
+function getInitialAssessmentPaymentRequests() {
+    const clientId = LORDBLESS_CLIENT_ACCOUNT.id;
+    const bridge = window.LORDBLESS_PAYMENT_BRIDGE;
+
+    if (
+        !clientId ||
+        !bridge ||
+        !clientPortalInitialised ||
+        !clientAuthResolvedUserId ||
+        clientAuthResolvedUserId !== clientAuthLookupUserId
+    ) return [];
+
+    const requests = typeof bridge.getPaymentRequests === "function"
+        ? bridge.getPaymentRequests(clientId)
+        : bridge.load?.().paymentRequests || [];
+
+    return requests
+        .filter(request =>
+            request &&
+            request.clientId === clientId &&
+            request.purpose === INITIAL_ASSESSMENT_PURPOSE
+        )
+        .sort((a, b) =>
+            new Date(b.createdAt || 0).getTime() -
+            new Date(a.createdAt || 0).getTime()
+        );
+}
+
+
+function getClientOnboardingPaymentState() {
+    const requests = getInitialAssessmentPaymentRequests();
+    const verifiedRequest = requests.find(request =>
+        String(request.status || "").toLowerCase() === "paid" &&
+        String(request.verificationStatus || "").toLowerCase() === "verified"
+    );
+
+    if (verifiedRequest) {
+        return { state: "full", request: verifiedRequest };
+    }
+
+    const request = requests[0] || null;
+    if (!request) {
+        return { state: "assessment_pending", request: null };
+    }
+
+    const requestStatus = String(request.status || "").toLowerCase();
+    const verificationStatus = String(request.verificationStatus || "").toLowerCase();
+    const awaitingVerification =
+        requestStatus === "awaiting_verification" ||
+        verificationStatus === "pending" ||
+        Boolean(request.clientPaymentSubmittedAt);
+
+    return {
+        state: awaitingVerification ? "awaiting_verification" : "payment_requested",
+        request
+    };
+}
+
+
+function isClientFullPortalActivated() {
+    return getClientOnboardingPaymentState().state === "full";
+}
+
+
+function formatOnboardingAmount(request) {
+    const amount = Number(request?.amount ?? request?.total ?? 1000);
+    const currency = request?.currency || "GHS";
+    return `${currency} ${amount.toFixed(2)}`;
+}
+
+
+function renderClientOnboardingPanel() {
+    const panel = document.getElementById("client-onboarding-panel");
+    if (!panel) return;
+
+    const onboarding = getClientOnboardingPaymentState();
+    const name = escapeHTML(LORDBLESS_CLIENT_ACCOUNT.fullName || "Client");
+    const request = onboarding.request;
+    const amount = formatOnboardingAmount(request);
+    const notice = clientOnboardingNotice
+        ? `<p class="client-onboarding-lock-message">${escapeHTML(clientOnboardingNotice)}</p>`
+        : "";
+
+    if (onboarding.state === "full") {
+        panel.innerHTML = `
+            <p class="portal-eyebrow">CLIENT PORTAL ACTIVATED</p>
+            <h2>WELCOME, ${name}</h2>
+            <span class="client-onboarding-status">CLIENT PORTAL ACTIVATED</span>
+            <p>Your Initial Assessment &amp; 30-Minute Consultation payment has been verified.</p>
+            <p>Your full LORDBLESS CONSULTANCY Client Portal is now active.</p>
+            <div class="client-onboarding-verification-message">
+                <strong>Initial Assessment &amp; 30-Minute Consultation</strong><br>
+                Amount Paid: ${escapeHTML(amount)}<br>
+                Status: PAID &amp; VERIFIED
+            </div>
+            <div class="client-onboarding-actions">
+                <button type="button" class="primary-button" data-onboarding-action="view-receipt">
+                    VIEW RECEIPT
+                </button>
+            </div>
+            ${notice}
+        `;
+    } else if (onboarding.state === "awaiting_verification") {
+        panel.innerHTML = `
+            <p class="portal-eyebrow">WELCOME TO LORDBLESS CONSULTANCY</p>
+            <h2>Welcome, ${name}</h2>
+            <span class="client-onboarding-status">PAYMENT AWAITING VERIFICATION</span>
+            <h3>Initial Assessment &amp; 30-Minute Consultation</h3>
+            <p>Payment: ${escapeHTML(amount)}</p>
+            <p>We have received your payment submission. Our Finance Team will verify the payment before your full Client Portal is activated.</p>
+            <p>You do not need to make another payment while this payment is being reviewed.</p>
+            ${notice}
+        `;
+    } else {
+        const status = onboarding.state === "payment_requested"
+            ? "INITIAL ASSESSMENT & CONSULTATION PAYMENT REQUESTED"
+            : "INITIAL ASSESSMENT & CONSULTATION PENDING";
+
+        panel.innerHTML = `
+            <p class="portal-eyebrow">WELCOME TO LORDBLESS CONSULTANCY</p>
+            <h2>Welcome, ${name}</h2>
+            <span class="client-onboarding-status">${status}</span>
+            <h3>Initial Assessment &amp; 30-Minute Consultation</h3>
+            <p>This fee covers the initial review of your information and documents, together with a 30-minute one-on-one consultation with a LORDBLESS CONSULTANCY consultant to discuss your profile, objectives, suitable options, and recommended next steps.</p>
+            <p><strong>Standard fee: GHS 1,000</strong>${request ? `<br>Amount due: ${escapeHTML(amount)}` : ""}</p>
+            <strong>What this includes:</strong>
+            <ul class="client-onboarding-includes">
+                <li>Initial review of submitted information</li>
+                <li>Review of relevant documents</li>
+                <li>Assessment of profile and objectives</li>
+                <li>30-minute one-on-one consultation</li>
+                <li>Discussion of suitable options</li>
+                <li>Recommended next steps</li>
+            </ul>
+            <div class="client-onboarding-actions">
+                <button type="button" class="primary-button" data-onboarding-action="view-payment">
+                    VIEW PAYMENT REQUEST
+                </button>
+            </div>
+            ${notice}
+        `;
+    }
+
+    panel.hidden = false;
+    updateClientPortalGate();
+}
+
+
+function updateClientPortalGate() {
+    const fullAccess = isClientFullPortalActivated();
+    const summary = document.querySelector("#view-overview .summary-grid");
+    const journeySummary = document.querySelector("#view-overview .dashboard-section");
+
+    if (summary) summary.hidden = !fullAccess;
+    if (journeySummary) journeySummary.hidden = !fullAccess;
+
+    document.querySelectorAll('.client-nav-item[data-view="journeys"], .client-nav-item[data-view="documents"], .client-nav-item[data-view="applications"]')
+        .forEach(button => {
+            button.classList.toggle("is-locked", !fullAccess);
+            button.setAttribute("aria-disabled", fullAccess ? "false" : "true");
+            button.title = fullAccess ? "" : CLIENT_FULL_ACCESS_LOCK_MESSAGE;
+        });
+}
+
+
+function initialiseClientOnboarding() {
+    const panel = document.getElementById("client-onboarding-panel");
+    if (panel && panel.dataset.onboardingBound !== "true") {
+        panel.dataset.onboardingBound = "true";
+        panel.addEventListener("click", event => {
+            const button = event.target.closest("[data-onboarding-action]");
+            if (!button || !panel.contains(button)) return;
+
+            if (button.dataset.onboardingAction === "view-payment") {
+                clientOnboardingNotice = "";
+                showView("payments");
+                setTimeout(() => {
+                    const request = getClientOnboardingPaymentState().request;
+                    const card = Array.from(document.querySelectorAll("[data-payment-request-id]"))
+                        .find(item => item.dataset.paymentRequestId === request?.id);
+                    card?.scrollIntoView({ behavior: "smooth", block: "center" });
+                }, 0);
+            } else if (button.dataset.onboardingAction === "view-receipt") {
+                const request = getClientOnboardingPaymentState().request;
+                showView("payments");
+                setTimeout(() => {
+                    const receiptButton = Array.from(
+                        document.querySelectorAll('[data-finance-action="view-receipt"]')
+                    ).find(item =>
+                        item.dataset.receiptId === request?.receiptId ||
+                        item.dataset.receiptId === request?.receiptNumber
+                    );
+                    receiptButton?.click();
+                }, 0);
+            }
+        });
+    }
+
+    const refresh = () => {
+        renderClientOnboardingPanel();
+        if (document.getElementById("view-payments")?.classList.contains("active")) {
+            renderClientFinance();
+        }
+    };
+
+    window.addEventListener("lordbless:payment-data-updated", event => {
+        const payload = event.detail?.payload;
+        if (
+            payload?.clientId === LORDBLESS_CLIENT_ACCOUNT.id &&
+            payload?.purpose === INITIAL_ASSESSMENT_PURPOSE
+        ) refresh();
+    });
+
+    window.addEventListener("storage", event => {
+        if (event.key === "LORDBLESS_PORTAL_DATA_BRIDGE_V1") refresh();
+    });
+}
+
+
 async function handleClientPortalSession(session) {
 
     if (!session?.user) {
+        clientAuthLookupUserId = null;
+        clientAuthResolvedUserId = null;
         window.location.replace("../portal-login.html");
         return;
     }
@@ -612,6 +934,7 @@ async function handleClientPortalSession(session) {
     }
 
     clientAuthLookupUserId = session.user.id;
+    clientAuthResolvedUserId = null;
 
     try {
         let { data: account, error: accountError } =
@@ -641,11 +964,14 @@ async function handleClientPortalSession(session) {
 
         if (!account || account.access_status !== "active") {
             clientAuthLookupUserId = null;
+            clientAuthResolvedUserId = null;
             window.location.replace(
                 "../portal-login.html?error=client-access-inactive"
             );
             return;
         }
+
+        clientAccountAccessStatus = account.access_status;
 
         const { data: client, error: clientError } =
             await lordblessSupabase
@@ -660,6 +986,8 @@ async function handleClientPortalSession(session) {
         }
 
         applyAuthenticatedClientRecord(client);
+        await loadAuthenticatedClientJourneys(client.id);
+        clientAuthResolvedUserId = session.user.id;
 
         const clientApp =
             document.getElementById("client-portal-app");
@@ -671,9 +999,14 @@ async function handleClientPortalSession(session) {
         if (!clientPortalInitialised) {
             clientPortalInitialised = true;
             initialiseClientPortal();
+        } else {
+            renderDashboard();
+            renderTransactionHistory();
+            renderDocuments();
         }
     } catch (error) {
         clientAuthLookupUserId = null;
+        clientAuthResolvedUserId = null;
         console.error(
             "LORDBLESS CLIENT ACCOUNT RESOLUTION ERROR:",
             error
@@ -1012,6 +1345,17 @@ function showView(
 
     }
 
+    if (
+        ["journeys", "documents", "applications"].includes(viewName) &&
+        !isClientFullPortalActivated()
+    ) {
+        clientOnboardingNotice = CLIENT_FULL_ACCESS_LOCK_MESSAGE;
+        renderClientOnboardingPanel();
+        viewName = "overview";
+    } else if (isClientFullPortalActivated()) {
+        clientOnboardingNotice = "";
+    }
+
 
     document
         .querySelectorAll(
@@ -1054,6 +1398,8 @@ function showView(
         ].title
     );
 
+    updateClientPortalGate();
+
 
     closeMobileSidebar();
 
@@ -1073,6 +1419,10 @@ function showView(
 
         renderTransactionHistory();
 
+    }
+
+    if (viewName === "applications") {
+        renderClientApplicationJourneyContext();
     }
 
 
@@ -1379,7 +1729,7 @@ function renderDashboard() {
         transactions.filter(
             transaction =>
                 transaction.status !==
-                "completed"
+                "completed" && transaction.status !== "cancelled"
         );
 
 
@@ -1423,6 +1773,19 @@ function renderDashboard() {
 
 
     if (!current) {
+        const currentJourneyCard = document.getElementById(
+            "current-journey-card"
+        );
+        if (currentJourneyCard) {
+            currentJourneyCard.innerHTML = `
+                <div class="empty-state-card">
+                    <h3>${clientJourneyLoadError ? "Journeys are temporarily unavailable" : "No journey assigned yet"}</h3>
+                    <p>${clientJourneyLoadError
+                        ? "Please refresh this page or contact support if the problem continues."
+                        : "Your LORDBLESS CONSULTANCY Team will add your journey here when your service or case is determined."}</p>
+                </div>
+            `;
+        }
         return;
     }
 
@@ -1740,6 +2103,16 @@ function renderTransactionHistory() {
         return;
     }
 
+    if (clientJourneyLoadError) {
+        container.innerHTML = `
+            <div class="empty-state-card" role="status">
+                <h3>Journeys are temporarily unavailable</h3>
+                <p>Please refresh this page or contact support if the problem continues.</p>
+            </div>
+        `;
+        return;
+    }
+
 
     const transactions =
         LORDBLESS_CLIENT_ACCOUNT.transactions || [];
@@ -1756,11 +2129,11 @@ function renderTransactionHistory() {
                 </div>
 
                 <h3>
-                    No journeys yet
+                    No journey assigned yet
                 </h3>
 
                 <p>
-                    Your LORDBLESS journeys will appear here.
+                    Your LORDBLESS CONSULTANCY Team will add your journey here when your service or case is determined.
                 </p>
 
             </div>
@@ -1815,8 +2188,8 @@ function createTransactionCard(
 ) {
 
     const isCompleted =
-        transaction.status ===
-        "completed";
+        transaction.status === "completed" ||
+        transaction.status === "cancelled";
 
 
     const isCurrent =
@@ -1906,6 +2279,8 @@ function createTransactionCard(
                         )}
                     </span>
 
+                    <span>Your LORDBLESS CONSULTANCY Team</span>
+
                     <span>
                         Updated
                         ${formatDate(
@@ -1960,6 +2335,52 @@ function createTransactionCard(
         </article>
 
     `;
+
+}
+
+
+function renderClientApplicationJourneyContext() {
+
+    const view = document.getElementById("view-applications");
+    const introduction = view?.querySelector(".page-introduction");
+    if (!introduction) return;
+
+    let context = introduction.querySelector("[data-application-journey-context]");
+    if (!context) {
+        context = document.createElement("div");
+        context.dataset.applicationJourneyContext = "true";
+        introduction.appendChild(context);
+    }
+
+    const journeys = LORDBLESS_CLIENT_ACCOUNT.transactions || [];
+    if (!journeys.length) {
+        context.innerHTML = `<p>No journey has been assigned yet. Applications will be linked to a Journey when one is available.</p>`;
+        return;
+    }
+
+    if (!journeys.some(journey => journey.id === clientApplicationJourneyId)) {
+        clientApplicationJourneyId = journeys[0].id;
+    }
+
+    context.innerHTML = `
+        <label>
+            Application Journey
+            <select data-application-journey-select>
+                ${journeys.map(journey => `
+                    <option value="${escapeHTML(journey.id)}" ${journey.id === clientApplicationJourneyId ? "selected" : ""}>
+                        ${escapeHTML(journey.title || journey.id)}
+                    </option>
+                `).join("")}
+            </select>
+        </label>
+    `;
+    context.dataset.journeyId = clientApplicationJourneyId;
+
+    context.querySelector("[data-application-journey-select]")
+        ?.addEventListener("change", event => {
+            clientApplicationJourneyId = event.target.value;
+            context.dataset.journeyId = clientApplicationJourneyId;
+        });
 
 }
 

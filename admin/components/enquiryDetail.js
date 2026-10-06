@@ -34,6 +34,40 @@ function renderEnquiryDetail(
             enquiry
         );
 
+    const clientId =
+        enquiry.client?.id || "";
+
+    const isLinkedClientRecord =
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+            .test(String(clientId));
+
+    const currentAdmin =
+        typeof getCurrentUser === "function"
+            ? getCurrentUser()
+            : null;
+
+    const canRequestPortalAccess =
+        Boolean(
+            currentAdmin &&
+            typeof hasPermission === "function" &&
+            hasPermission(currentAdmin, "clients.portal_access")
+        );
+
+    const canRequestFinancePayment =
+        Boolean(
+            currentAdmin &&
+            typeof hasPermission === "function" &&
+            hasPermission(currentAdmin, "finance.requests")
+        );
+
+    const canManageJourneys =
+        Boolean(
+            isLinkedClientRecord &&
+            currentAdmin &&
+            typeof hasPermission === "function" &&
+            hasPermission(currentAdmin, "journeys.write")
+        );
+
 
     return `
 
@@ -66,6 +100,109 @@ function renderEnquiryDetail(
 
             </div>
 
+
+            <div class="detail-card enquiry-onboarding-actions">
+
+                <h3>Client Onboarding</h3>
+
+                ${isLinkedClientRecord
+                    ? `
+                        <div class="enquiry-onboarding-action-buttons">
+                            ${canRequestPortalAccess ? `
+                                <button
+                                    type="button"
+                                    class="button button-primary"
+                                    data-enquiry-action="create-client-access"
+                                    data-client-id="${escapeHTML(clientId)}"
+                                >
+                                    Create Portal Access
+                                </button>
+                            ` : ""}
+
+                            ${canRequestFinancePayment ? `
+                                <button
+                                    type="button"
+                                    class="button button-secondary"
+                                    data-enquiry-action="request-initial-assessment-payment"
+                                    data-client-id="${escapeHTML(clientId)}"
+                                >
+                                    Request Initial Assessment Payment
+                                </button>
+                            ` : ""}
+                        </div>
+
+                        <p
+                            class="enquiry-onboarding-action-message"
+                            data-enquiry-action-message
+                            role="status"
+                            aria-live="polite"
+                        ></p>
+                    `
+                    : `
+                        <p>
+                            Portal access and onboarding payments are available for enquiries linked to a production client record.
+                        </p>
+                    `
+                }
+
+            </div>
+
+
+            ${canManageJourneys ? `
+                <section
+                    class="detail-card client-journeys-card"
+                    data-client-journey-panel
+                    data-client-id="${escapeHTML(clientId)}"
+                    data-enquiry-id="${escapeHTML(enquiry.id || "")}">
+                    <h3>Client Journeys</h3>
+                    <p>Journeys are created when the consultancy determines the client’s service or case.</p>
+                    <div data-client-journey-list role="status" aria-live="polite">
+                        Loading journeys…
+                    </div>
+                    <form data-client-journey-form>
+                        <h4>Create Journey</h4>
+                        <label>
+                            Journey Type
+                            <input name="journey_type" type="text" required maxlength="120" placeholder="e.g. Nursing Career">
+                        </label>
+                        <label>
+                            Title
+                            <input name="title" type="text" required maxlength="180" placeholder="e.g. Germany Nursing Career">
+                        </label>
+                        <label>
+                            Destination
+                            <input name="destination" type="text" required maxlength="120">
+                        </label>
+                        <label>
+                            Service
+                            <input name="service" type="text" required maxlength="180">
+                        </label>
+                        <label>
+                            Status
+                            <select name="status" required>
+                                <option value="planning">Planning</option>
+                                <option value="active">Active</option>
+                                <option value="completed">Completed</option>
+                                <option value="cancelled">Cancelled</option>
+                            </select>
+                        </label>
+                        <label>
+                            Internal Assignee (optional)
+                            <select name="internal_assignee_id">
+                                <option value="">Unassigned</option>
+                            </select>
+                        </label>
+                        <label>
+                            Internal Team / Desk (optional)
+                            <select name="desk_id">
+                                <option value="">Unassigned</option>
+                            </select>
+                        </label>
+                        <button type="submit" class="button button-primary">Create Journey</button>
+                        <p data-client-journey-message role="status" aria-live="polite"></p>
+                    </form>
+                </section>
+            ` : ""}
 
             <div class="detail-grid">
 

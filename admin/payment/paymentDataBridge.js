@@ -271,6 +271,61 @@
         }
 
 
+        const isInitialAssessment =
+            request.purpose === "initial_assessment_consultation";
+
+        let initialAssessmentAmount =
+            null;
+        let initialAssessmentDiscount =
+            null;
+
+        if (isInitialAssessment) {
+
+            initialAssessmentAmount =
+                Number(request.amount);
+            initialAssessmentDiscount =
+                request.discount === undefined || request.discount === null || request.discount === ""
+                    ? 1000 - initialAssessmentAmount
+                    : Number(request.discount);
+
+            const initialAssessmentSubtotal =
+                request.subtotal === undefined || request.subtotal === null || request.subtotal === ""
+                    ? 1000
+                    : Number(request.subtotal);
+
+            const initialAssessmentTotal =
+                request.total === undefined || request.total === null || request.total === ""
+                    ? initialAssessmentAmount
+                    : Number(request.total);
+
+            if (
+                typeof request.clientId !== "string" ||
+                !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(request.clientId) ||
+                !Number.isFinite(initialAssessmentAmount) ||
+                initialAssessmentAmount <= 0 ||
+                initialAssessmentAmount > 1000 ||
+                !Number.isFinite(initialAssessmentDiscount) ||
+                initialAssessmentDiscount < 0 ||
+                initialAssessmentDiscount >= 1000 ||
+                !Number.isFinite(initialAssessmentSubtotal) ||
+                initialAssessmentSubtotal !== 1000 ||
+                !Number.isFinite(initialAssessmentTotal) ||
+                Math.abs(initialAssessmentTotal - initialAssessmentAmount) > 0.001 ||
+                Math.abs(initialAssessmentAmount - (1000 - initialAssessmentDiscount)) > 0.001 ||
+                String(request.currency || "").toUpperCase() !== "GHS"
+            ) {
+
+                console.warn(
+                    "LORDBLESS PAYMENT BRIDGE: Invalid Initial Assessment & Consultation payment request."
+                );
+
+                return null;
+
+            }
+
+        }
+
+
         const data =
             load();
 
@@ -285,9 +340,70 @@
             );
 
 
+        if (
+            isInitialAssessment &&
+            existingIndex < 0
+        ) {
+
+            const activeStatuses = new Set([
+                "requested",
+                "awaiting_verification",
+                "pending",
+                "client_viewed",
+                "payment_pending",
+                "payment_submitted",
+                "submitted",
+                "under_review"
+            ]);
+
+            const existingActiveRequest =
+                data.paymentRequests.find(item => {
+
+                    if (
+                        !item ||
+                        item.clientId !== request.clientId ||
+                        item.purpose !== "initial_assessment_consultation"
+                    ) {
+                        return false;
+                    }
+
+                    const status =
+                        String(item.status || "")
+                            .trim()
+                            .toLowerCase()
+                            .replace(/[\s-]+/g, "_");
+
+                    const verificationStatus =
+                        String(item.verificationStatus || "")
+                            .trim()
+                            .toLowerCase();
+
+                    return activeStatuses.has(status) &&
+                        verificationStatus !== "verified" &&
+                        verificationStatus !== "rejected";
+
+                });
+
+            if (existingActiveRequest) {
+                return existingActiveRequest;
+            }
+
+        }
+
+
         const storedRequest = {
 
             ...request,
+
+            ...(isInitialAssessment ? {
+                amount: initialAssessmentAmount,
+                subtotal: 1000,
+                discount: initialAssessmentDiscount,
+                total: initialAssessmentAmount,
+                currency: "GHS",
+                journeyId: request.journeyId || null,
+                transactionId: request.transactionId || null
+            } : {}),
 
             updatedAt:
                 new Date().toISOString()

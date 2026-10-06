@@ -743,6 +743,93 @@
 
     function confirmPayment() {
 
+        const currentRequest =
+            verificationState.paymentRequest;
+
+        if (
+            currentRequest &&
+            currentRequest.purpose === "initial_assessment_consultation"
+        ) {
+            const bridge =
+                window.LORDBLESS_PAYMENT_BRIDGE;
+
+            const latestRequest =
+                bridge &&
+                typeof bridge.getPaymentRequest === "function"
+                    ? bridge.getPaymentRequest(currentRequest.id)
+                    : null;
+
+            if (!latestRequest) {
+                showMessage(
+                    "The Initial Assessment payment could not be verified because its current saved request is unavailable.",
+                    true
+                );
+                return;
+            }
+
+            verificationState.paymentRequest =
+                latestRequest;
+
+            const requestStatus =
+                String(latestRequest.status || "")
+                    .trim()
+                    .toLowerCase()
+                    .replace(/[\s-]+/g, "_");
+
+            const verificationStatus =
+                String(latestRequest.verificationStatus || "")
+                    .trim()
+                    .toLowerCase();
+
+            const eligibleStatuses = new Set([
+                "requested",
+                "client_viewed",
+                "payment_pending",
+                "payment_submitted",
+                "awaiting_verification",
+                "pending",
+                "submitted",
+                "under_review"
+            ]);
+
+            if (
+                !latestRequest.clientId ||
+                !Number.isFinite(Number(latestRequest.amount)) ||
+                Number(latestRequest.amount) <= 0 ||
+                String(latestRequest.currency || "").toUpperCase() !== "GHS" ||
+                String(verificationState.currency || "").toUpperCase() !== "GHS"
+            ) {
+                showMessage(
+                    "This Initial Assessment payment request is invalid and cannot be verified.",
+                    true
+                );
+                return;
+            }
+
+            if (
+                requestStatus === "paid" ||
+                requestStatus === "rejected" ||
+                requestStatus === "cancelled" ||
+                requestStatus === "canceled" ||
+                verificationStatus === "verified" ||
+                verificationStatus === "rejected"
+            ) {
+                showMessage(
+                    "This Initial Assessment payment is already finalized and cannot be verified again.",
+                    true
+                );
+                return;
+            }
+
+            if (!eligibleStatuses.has(requestStatus)) {
+                showMessage(
+                    "This Initial Assessment payment has not been requested or submitted for verification.",
+                    true
+                );
+                return;
+            }
+        }
+
         const error =
             validateVerification();
 
@@ -892,6 +979,17 @@
 
                     );
 
+        }
+
+        if (
+            originalRequest.purpose === "initial_assessment_consultation" &&
+            !savedRequest
+        ) {
+            showMessage(
+                "The Initial Assessment payment verification could not be saved. No receipt was issued.",
+                true
+            );
+            return;
         }
 
 
