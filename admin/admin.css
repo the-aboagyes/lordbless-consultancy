@@ -376,7 +376,7 @@ body {
 }
 
 .enquiry-row {
-    cursor: pointer;
+    cursor: default;
 }
 
 .enquiry-row:hover {

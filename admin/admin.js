@@ -7062,6 +7062,10 @@ function enquiryTable(
                         Date
                     </th>
 
+                    <th>
+                        Action
+                    </th>
+
                 </tr>
 
             </thead>
@@ -7127,6 +7131,22 @@ function enquiryTable(
                                     )}
                                 </td>
 
+                                <td>
+                                    <button
+                                        type="button"
+                                        class="button button-secondary"
+                                        data-view-client
+                                        data-enquiry-reference="${escapeHTML(
+                                            enquiry.reference || ""
+                                        )}"
+                                        aria-label="View client details for ${escapeHTML(
+                                            enquiry.reference || "this enquiry"
+                                        )}"
+                                    >
+                                        VIEW CLIENT
+                                    </button>
+                                </td>
+
                             </tr>
 
                         `
@@ -7151,27 +7171,185 @@ function attachEnquiryRows() {
 
     document
         .querySelectorAll(
-            ".enquiry-row"
+            "[data-view-client]"
         )
-        .forEach(row => {
+        .forEach(button => {
 
-            row.addEventListener(
+            button.addEventListener(
                 "click",
-                () => {
-
-                    const reference =
-                        row.dataset.reference;
-
-
-                    openEnquiry(
-                        reference
+                event => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    openAdminEnquiryClient(
+                        button.dataset.enquiryReference
                     );
-
                 }
             );
 
         });
 
+}
+
+
+function getEnquiryClientId(enquiry) {
+    return String(
+        enquiry?.client_id ||
+        enquiry?.client?.id ||
+        ""
+    ).trim();
+}
+
+
+function isSupabaseClientId(clientId) {
+    return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+        .test(String(clientId || ""));
+}
+
+
+async function loadClientPortalAccount(clientId) {
+    const { data, error } = await lordblessSupabase
+        .from("client_accounts")
+        .select("client_id, auth_user_id, access_status")
+        .eq("client_id", clientId)
+        .maybeSingle();
+
+    if (error) throw error;
+    return data || null;
+}
+
+
+function renderAdminEnquiryClientView(enquiry, portalState) {
+    if (
+        !window.LORDBLESS_CLIENT_DETAILS ||
+        typeof window.LORDBLESS_CLIENT_DETAILS.renderEnquiry !== "function"
+    ) {
+        modalContent.innerHTML = `
+            <div class="empty-state" role="alert">
+                Client Details could not be loaded.
+            </div>
+        `;
+        return;
+    }
+
+    window.LORDBLESS_CLIENT_DETAILS.renderEnquiry(
+        modalContent,
+        {
+            enquiry,
+            client: enquiry.client || {},
+            clientId: getEnquiryClientId(enquiry),
+            portalState: portalState || {}
+        }
+    );
+
+    const createButton = modalContent.querySelector(
+        '[data-client-portal-action="create"]'
+    );
+    if (!createButton) return;
+
+    createButton.addEventListener("click", async event => {
+        event.preventDefault();
+        event.stopPropagation();
+
+        const clientId = createButton.dataset.clientId;
+        const activeReference =
+            enquiryModal.dataset.clientDetailsReference;
+        const message = modalContent.querySelector(
+            "[data-client-portal-message]"
+        );
+        createButton.disabled = true;
+        if (message) message.textContent = "Creating Client Portal access…";
+
+        try {
+            const result = await requestClientPortalAccess(clientId);
+            const portalAccount = await loadClientPortalAccount(clientId);
+            if (
+                enquiryModal.classList.contains("hidden") ||
+                enquiryModal.dataset.clientDetailsReference !== activeReference
+            ) return;
+
+            const outcome = result?.already_linked
+                ? "Portal access is already linked to this client."
+                : result?.existing_auth_user_linked
+                    ? "The existing Auth account has been linked to this client."
+                    : "The Client Portal invitation was created.";
+
+            renderAdminEnquiryClientView(enquiry, {
+                account: portalAccount,
+                canCreate: false,
+                message: outcome
+            });
+        } catch (error) {
+            if (
+                enquiryModal.classList.contains("hidden") ||
+                enquiryModal.dataset.clientDetailsReference !== activeReference
+            ) return;
+
+            if (message) {
+                message.textContent = error?.message ||
+                    "Unable to create Client Portal access.";
+            }
+            createButton.disabled = false;
+        }
+    });
+}
+
+
+async function openAdminEnquiryClient(reference) {
+    const enquiry = state.enquiries.find(item =>
+        item.reference === reference || item.id === reference
+    );
+    if (!enquiry || !modalContent || !enquiryModal) return;
+
+    const clientId = getEnquiryClientId(enquiry);
+    const canCreate = Boolean(
+        isSupabaseClientId(clientId) &&
+        state.authUser &&
+        getCurrentUser() &&
+        hasPermission(getCurrentUser(), "clients.portal_access")
+    );
+
+    enquiryModal.dataset.clientDetailsReference = String(reference || "");
+    enquiryModal.classList.remove("hidden");
+    renderAdminEnquiryClientView(enquiry, {
+        loading: Boolean(clientId),
+        account: null,
+        canCreate,
+        message: ""
+    });
+
+    if (!isSupabaseClientId(clientId)) {
+        renderAdminEnquiryClientView(enquiry, {
+            error: "This enquiry is not linked to a production client record.",
+            canCreate: false,
+            account: null
+        });
+        return;
+    }
+
+    try {
+        const account = await loadClientPortalAccount(clientId);
+        if (
+            enquiryModal.dataset.clientDetailsReference !== String(reference || "") ||
+            enquiryModal.classList.contains("hidden")
+        ) return;
+
+        renderAdminEnquiryClientView(enquiry, {
+            account,
+            canCreate: canCreate && !account,
+            message: ""
+        });
+    } catch (error) {
+        if (
+            enquiryModal.dataset.clientDetailsReference !== String(reference || "") ||
+            enquiryModal.classList.contains("hidden")
+        ) return;
+
+        renderAdminEnquiryClientView(enquiry, {
+            error: error?.message || "Unable to load Client Portal access status.",
+            canCreate: false,
+            account: null
+        });
+    }
 }
 
 
