@@ -62,14 +62,25 @@ function showPortalLogin(message) {
 }
 
 
-const recoveryHashParams = new URLSearchParams(window.location.hash.slice(1));
-const recoveryQueryParams = new URLSearchParams(window.location.search);
+const recoveryHashParams = new URLSearchParams(
+    window.location.hash.slice(1)
+);
+
+const recoveryQueryParams = new URLSearchParams(
+    window.location.search
+);
+
+const authLinkType =
+    recoveryHashParams.get("type") ||
+    recoveryQueryParams.get("type");
+
 if (
-    recoveryHashParams.get("type") === "recovery" ||
-    recoveryQueryParams.get("type") === "recovery"
+    authLinkType === "recovery" ||
+    authLinkType === "invite"
 ) {
     showPasswordResetForm();
 }
+
 
 
 function routePortalRole(role) {
@@ -107,21 +118,6 @@ async function resolvePortalAccess(user) {
     const staff = staffResult.data;
     let client = clientResult.data;
 
-    if (client?.access_status === "invited") {
-        const { error: activationError } =
-            await lordblessSupabase.rpc("activate_client_account");
-        if (activationError) throw activationError;
-
-        const { data: refreshedClient, error: refreshError } =
-            await lordblessSupabase
-                .from("client_accounts")
-                .select("auth_user_id, client_id, access_status")
-                .eq("auth_user_id", user.id)
-                .maybeSingle();
-
-        if (refreshError) throw refreshError;
-        client = refreshedClient;
-    }
 
     if (staff && client) {
         throw new Error("This account has conflicting staff and client access. Contact LORDBLESS support.");
