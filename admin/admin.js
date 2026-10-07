@@ -714,7 +714,7 @@ async function loadAdminEnquiries() {
             error
         } = await lordblessSupabase
             .from("enquiries")
-            .select("*");
+            .select("*, client:clients(*)");
 
 
         if (state.authUser?.id !== requestUserId) {
@@ -794,10 +794,18 @@ function mapSupabaseEnquiry(record) {
         record.payload ||
         record;
 
+    const relatedClient = Array.isArray(record.client)
+        ? record.client[0]
+        : record.client;
+
     const client =
-        record.client ||
+        relatedClient ||
         details.client ||
         {};
+
+    const clientName =
+        client.fullName || client.full_name || client.name ||
+        record.client_name || record.full_name || details.clientName || "";
 
     const services =
         record.services ||
@@ -815,9 +823,8 @@ function mapSupabaseEnquiry(record) {
         client: {
             ...client,
             id: client.id || record.client_id || details.clientId || "",
-            fullName:
-                client.fullName || client.full_name ||
-                record.client_name || record.full_name || "",
+            fullName: clientName,
+            name: client.name || clientName,
             email: client.email || record.client_email || record.email || "",
             whatsapp:
                 client.whatsapp || client.phone ||
