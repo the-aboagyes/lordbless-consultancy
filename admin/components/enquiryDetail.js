@@ -9,12 +9,18 @@
 ========================================= */
 
 function renderEnquiryDetail(
-    enquiry
+    container,
+    enquiry,
+    client = null
 ) {
+
+    if (!container) {
+        return;
+    }
 
     if (!enquiry) {
 
-        return `
+        container.innerHTML = `
 
             <div class="empty-state">
 
@@ -26,7 +32,50 @@ function renderEnquiryDetail(
 
         `;
 
+        return;
+
     }
+
+
+    const journey =
+        enquiry.journey && typeof enquiry.journey === "object"
+            ? enquiry.journey
+            : {};
+
+    const serviceValues =
+        Array.isArray(enquiry.services) && enquiry.services.length
+            ? enquiry.services
+            : Array.isArray(enquiry.service)
+                ? enquiry.service
+                : enquiry.service
+                    ? [enquiry.service]
+                    : Array.isArray(enquiry.services)
+                        ? enquiry.services
+                        : [];
+
+    enquiry = {
+        ...enquiry,
+        client: {
+            ...(client || {}),
+            ...(enquiry.client || {})
+        },
+        services: serviceValues,
+        journey: {
+            ...journey,
+            destination:
+                journey.destination || enquiry.destination || "",
+            timeframe:
+                journey.timeframe || enquiry.timeframe ||
+                enquiry.travel_dates || enquiry.travelDates || "",
+            preferredContact:
+                journey.preferredContact || enquiry.preferredContact ||
+                enquiry.preferred_contact || "",
+            additionalInformation:
+                journey.additionalInformation ||
+                enquiry.additionalInformation ||
+                enquiry.additional_information || ""
+        }
+    };
 
 
     const serviceDetails =
@@ -69,7 +118,7 @@ function renderEnquiryDetail(
         );
 
 
-    return `
+    container.innerHTML = `
 
         <div class="enquiry-detail-page">
 
