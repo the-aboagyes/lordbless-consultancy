@@ -125,23 +125,20 @@ async function resolvePortalAccess(user) {
 
     if (staff?.active) return { portal: "admin" };
 
-    if (client) {
-        if (client.access_status === "active") {
-            return { portal: "client" };
-        }
-        return {
-            pending: true,
-            message: `Your Client Portal access is ${client.access_status.replaceAll("_", " ")}. Contact LORDBLESS support if you need assistance.`
-        };
+ if (client) {
+    if (client.access_status === "active") {
+        return { portal: "client" };
     }
 
-    if (staff && !staff.active) {
-        throw new Error("This staff account is inactive. Contact LORDBLESS support.");
+    if (client.access_status === "invited") {
+        return { invited: true };
     }
 
-    throw new Error("Portal access has not been assigned to this account. Contact LORDBLESS support.");
+    return {
+        pending: true,
+        message: `Your Client Portal access is ${client.access_status.replaceAll("_", " ")}. Contact LORDBLESS support if you need assistance.`
+    };
 }
-
 
 async function handlePortalSession(session) {
     if (portalResetMode || portalPasswordResetComplete) return;
@@ -168,6 +165,11 @@ async function handlePortalSession(session) {
     try {
         const access = await resolvePortalAccess(session.user);
         if (version !== portalResolutionVersion) return;
+        
+        if (access.invited) {
+    showPasswordResetForm(session);
+    return;
+}
 
         if (access.pending) {
             portalAuthMessage.dataset.error = "true";
