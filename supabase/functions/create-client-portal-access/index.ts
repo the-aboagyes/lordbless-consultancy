@@ -3,10 +3,13 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 const supabaseUrl = Deno.env.get("SUPABASE_URL");
 const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 const inviteRedirectUrl = Deno.env.get("PORTAL_INVITE_REDIRECT_URL");
-const allowedOrigins = (Deno.env.get("PORTAL_ALLOWED_ORIGINS") || "")
-    .split(",")
-    .map((origin) => origin.trim())
-    .filter(Boolean);
+const allowedOrigins = new Set([
+    "https://lordblessconsultancy.com",
+    ...(Deno.env.get("PORTAL_ALLOWED_ORIGINS") || "")
+        .split(",")
+        .map((origin) => origin.trim())
+        .filter(Boolean),
+]);
 
 const jsonHeaders = {
     "Content-Type": "application/json",
@@ -19,7 +22,7 @@ function response(
     origin?: string,
 ) {
     const headers = new Headers(jsonHeaders);
-    if (origin && allowedOrigins.includes(origin)) {
+    if (origin && allowedOrigins.has(origin)) {
         headers.set("Access-Control-Allow-Origin", origin);
         headers.set("Access-Control-Allow-Headers", "authorization, x-client-info, apikey, content-type");
         headers.set("Access-Control-Allow-Methods", "POST, OPTIONS");
@@ -58,22 +61,35 @@ async function findAuthUserByEmail(serviceClient: any, email: string) {
 Deno.serve(async (request) => {
     const origin = request.headers.get("origin") || undefined;
 
-    if (origin && !allowedOrigins.includes(origin)) {
-        return response(403, { error: "Origin is not allowed." });
+   if (request.method === "OPTIONS") {
+
+    const headers = new Headers(jsonHeaders);
+
+    if (origin && allowedOrigins.has(origin)) {
+
+        headers.set("Access-Control-Allow-Origin", origin);
+
+        headers.set(
+            "Access-Control-Allow-Headers",
+            "authorization, x-client-info, apikey, content-type"
+        );
+
+        headers.set(
+            "Access-Control-Allow-Methods",
+            "POST, OPTIONS"
+        );
+
     }
 
-    if (request.method === "OPTIONS") {
-        return new Response(null, {
-            status: 204,
-            headers: {
-                ...jsonHeaders,
-                ...(origin ? {
-                    "Access-Control-Allow-Origin": origin,
-                    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-                    "Access-Control-Allow-Methods": "POST, OPTIONS",
-                } : {}),
-            },
-        });
+    return new Response(null, {
+        status: 204,
+        headers
+    });
+
+}
+
+    if (origin && !allowedOrigins.has(origin)) {
+        return response(403, { error: "Origin is not allowed." });
     }
 
     if (request.method !== "POST") {
