@@ -7305,11 +7305,11 @@ function openEnquiry(
     }
 
 
-    modalContent.innerHTML =
-        renderEnquiryDetail(
-            enquiry
-        );
-
+    renderEnquiryDetail(
+    modalContent,
+    enquiry,
+    enquiry.client || null
+);
 
     enquiryModal.classList.remove(
         "hidden"
