@@ -179,6 +179,10 @@ Deno.serve(async (request) => {
     }
 
     const clientId = body.client_id;
+    const action = body.action === undefined ? "create" : body.action;
+    if (action !== "create" && action !== "resend_invitation") {
+        return response(400, { error: "A supported portal access action is required." }, origin);
+    }
     if (!isUuid(clientId)) {
         return response(400, { error: "A valid client_id is required." }, origin);
     }
@@ -206,6 +210,59 @@ Deno.serve(async (request) => {
     if (accountLookupError) {
         return response(500, { error: "Unable to check existing portal access." }, origin);
     }
+
+    if (action === "resend_invitation") {
+        if (
+            !existingAccount ||
+            existingAccount.client_id !== client.id ||
+            existingAccount.access_status !== "invited" ||
+            !isUuid(existingAccount.auth_user_id)
+        ) {
+            return response(409, {
+                error: "A resend is available only for this client's existing invited portal account.",
+            }, origin);
+        }
+
+        const { data: existingAuthData, error: existingAuthError } =
+            await serviceClient.auth.admin.getUserById(existingAccount.auth_user_id);
+        const existingAuthUser = existingAuthData?.user;
+        if (existingAuthError || !existingAuthUser) {
+            return response(409, { error: "The linked Auth identity could not be verified." }, origin);
+        }
+        if (existingAuthUser.email_confirmed_at || existingAuthUser.confirmed_at) {
+            return response(409, {
+                error: "This Auth identity is already confirmed and cannot receive another invitation.",
+            }, origin);
+        }
+        if (!existingAuthUser.email?.trim()) {
+            return response(422, { error: "The linked Auth identity has no invitation email address." }, origin);
+        }
+
+        const { data: resendData, error: resendError } =
+            await serviceClient.auth.admin.inviteUserByEmail(
+                existingAuthUser.email.trim(),
+                { redirectTo: inviteRedirectUrl },
+            );
+
+        if (resendError) {
+            return response(409, {
+                error: resendError.message || "The invitation could not be resent.",
+            }, origin);
+        }
+        if (resendData?.user?.id !== existingAccount.auth_user_id) {
+            return response(409, {
+                error: "The invitation response did not match the existing Auth identity.",
+            }, origin);
+        }
+
+        return response(200, {
+            success: true,
+            invitation_resent: true,
+            client_id: client.id,
+            access_status: "invited",
+        }, origin);
+    }
+
     if (existingAccount) {
         return response(200, {
             success: true,

@@ -661,7 +661,7 @@ async function signOutAdmin() {
 }
 
 
-async function requestClientPortalAccess(clientId) {
+async function requestClientPortalAccess(clientId, action = "create") {
 
     if (
         !state.authUser ||
@@ -674,7 +674,11 @@ async function requestClientPortalAccess(clientId) {
     const { data, error } =
         await lordblessSupabase.functions.invoke(
             "create-client-portal-access",
-            { body: { client_id: clientId } }
+            {
+                body: action === "resend_invitation"
+                    ? { client_id: clientId, action }
+                    : { client_id: clientId }
+            }
         );
 
     if (error) throw error;
@@ -7251,9 +7255,7 @@ function renderAdminEnquiryClientView(enquiry, portalState) {
     const createButton = modalContent.querySelector(
         '[data-client-portal-action="create"]'
     );
-    if (!createButton) return;
-
-    createButton.addEventListener("click", async event => {
+    if (createButton) createButton.addEventListener("click", async event => {
         event.preventDefault();
         event.stopPropagation();
 
@@ -7283,6 +7285,10 @@ function renderAdminEnquiryClientView(enquiry, portalState) {
             renderAdminEnquiryClientView(enquiry, {
                 account: portalAccount,
                 canCreate: false,
+                canResend: Boolean(
+                    portalState.canManageAccess &&
+                    portalAccount?.access_status === "invited"
+                ),
                 message: outcome
             });
         } catch (error) {
@@ -7296,6 +7302,60 @@ function renderAdminEnquiryClientView(enquiry, portalState) {
                     "Unable to create Client Portal access.";
             }
             createButton.disabled = false;
+        }
+    });
+
+    const resendButton = modalContent.querySelector(
+        '[data-client-portal-action="resend-invitation"]'
+    );
+    if (resendButton) resendButton.addEventListener("click", async event => {
+        event.preventDefault();
+        event.stopPropagation();
+
+        const clientId = resendButton.dataset.clientId;
+        const activeReference =
+            enquiryModal.dataset.clientDetailsReference;
+        const message = modalContent.querySelector(
+            "[data-client-portal-message]"
+        );
+        resendButton.disabled = true;
+        resendButton.textContent = "SENDING INVITATION…";
+        if (message) message.textContent = "Sending a fresh invitation…";
+
+        try {
+            const result = await requestClientPortalAccess(
+                clientId,
+                "resend_invitation"
+            );
+            const portalAccount = await loadClientPortalAccount(clientId);
+            if (
+                enquiryModal.classList.contains("hidden") ||
+                enquiryModal.dataset.clientDetailsReference !== activeReference
+            ) return;
+
+            renderAdminEnquiryClientView(enquiry, {
+                account: portalAccount,
+                canCreate: false,
+                canResend: Boolean(
+                    portalState.canManageAccess &&
+                    portalAccount?.access_status === "invited"
+                ),
+                message: result?.invitation_resent
+                    ? "A fresh Client Portal invitation was sent."
+                    : "The invitation request was processed."
+            });
+        } catch (error) {
+            if (
+                enquiryModal.classList.contains("hidden") ||
+                enquiryModal.dataset.clientDetailsReference !== activeReference
+            ) return;
+
+            if (message) {
+                message.textContent = error?.message ||
+                    "Unable to resend the Client Portal invitation.";
+            }
+            resendButton.disabled = false;
+            resendButton.textContent = "RESEND INVITATION";
         }
     });
 }
@@ -7321,6 +7381,7 @@ async function openAdminEnquiryClient(reference) {
         loading: Boolean(clientId),
         account: null,
         canCreate,
+        canManageAccess: canCreate,
         message: ""
     });
 
@@ -7343,6 +7404,8 @@ async function openAdminEnquiryClient(reference) {
         renderAdminEnquiryClientView(enquiry, {
             account,
             canCreate: canCreate && !account,
+            canManageAccess: canCreate,
+            canResend: Boolean(canCreate && account?.access_status === "invited"),
             message: ""
         });
     } catch (error) {

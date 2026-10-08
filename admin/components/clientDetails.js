@@ -93,6 +93,13 @@
             portalState.canCreate &&
             clientId
         );
+        const canResendInvitation = Boolean(
+            !portalState.loading &&
+            !portalState.error &&
+            portalState.account?.access_status === "invited" &&
+            portalState.canResend &&
+            clientId
+        );
 
         return `
             <section class="detail-card full-width" aria-labelledby="client-portal-access-title">
@@ -101,9 +108,6 @@
                     <span>Portal Account</span>
                     <strong>${escapeClientDetails(status)}</strong>
                 </div>
-                ${portalState.account?.access_status === "invited"
-                    ? `<p>The invitation has been sent. No resend action is available in the current Admin workflow.</p>`
-                    : ""}
                 ${portalState.error
                     ? `<p class="client-portal-access-message" role="alert">${escapeClientDetails(portalState.error)}</p>`
                     : ""}
@@ -118,6 +122,17 @@
                         data-client-id="${escapeClientDetails(clientId)}"
                     >
                         CREATE PORTAL ACCESS
+                    </button>
+                    <p data-client-portal-message class="client-portal-access-message" role="status" aria-live="polite"></p>
+                ` : ""}
+                ${canResendInvitation ? `
+                    <button
+                        type="button"
+                        class="button button-primary"
+                        data-client-portal-action="resend-invitation"
+                        data-client-id="${escapeClientDetails(clientId)}"
+                    >
+                        RESEND INVITATION
                     </button>
                     <p data-client-portal-message class="client-portal-access-message" role="status" aria-live="polite"></p>
                 ` : ""}
