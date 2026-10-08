@@ -229,17 +229,12 @@ Deno.serve(async (request) => {
         if (existingAuthError || !existingAuthUser) {
             return response(409, { error: "The linked Auth identity could not be verified." }, origin);
         }
-        if (existingAuthUser.email_confirmed_at || existingAuthUser.confirmed_at) {
-            return response(409, {
-                error: "This Auth identity is already confirmed and cannot receive another invitation.",
-            }, origin);
-        }
         if (!existingAuthUser.email?.trim()) {
-            return response(422, { error: "The linked Auth identity has no invitation email address." }, origin);
+            return response(422, { error: "The linked Auth identity has no recovery email address." }, origin);
         }
 
-        const { data: resendData, error: resendError } =
-            await serviceClient.auth.admin.inviteUserByEmail(
+        const { error: resendError } =
+            await serviceClient.auth.resetPasswordForEmail(
                 existingAuthUser.email.trim(),
                 { redirectTo: inviteRedirectUrl },
             );
@@ -249,12 +244,6 @@ Deno.serve(async (request) => {
                 error: resendError.message || "The invitation could not be resent.",
             }, origin);
         }
-        if (resendData?.user?.id !== existingAccount.auth_user_id) {
-            return response(409, {
-                error: "The invitation response did not match the existing Auth identity.",
-            }, origin);
-        }
-
         return response(200, {
             success: true,
             invitation_resent: true,
