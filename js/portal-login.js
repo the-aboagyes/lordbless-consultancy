@@ -9,7 +9,7 @@
  *
  * Business rules:
  * - Accepting an invitation or setting a password does not activate a client.
- * - Only access_status === "active" enters the client portal.
+ * - activation_required enters limited onboarding; active enters full portal access.
  * - Invited clients are shown the password setup form.
  * - The Edge Function is not changed by this script.
  */
@@ -125,6 +125,7 @@ async function resolvePortalAccess(user) {
 
     if (client) {
         if (client.access_status === "active") return { portal: "client" };
+        if (client.access_status === "activation_required") return { portal: "client" };
         if (client.access_status === "invited") return { invited: true };
 
         const status = String(client.access_status || "unknown").replaceAll("_", " ");
@@ -268,6 +269,26 @@ portalResetPasswordForm.addEventListener("submit", async event => {
     try {
         const { error } = await lordblessSupabase.auth.updateUser({ password: newPassword });
         if (error) throw error;
+
+        const { data: userResult, error: userError } =
+            await lordblessSupabase.auth.getUser();
+        if (userError) throw userError;
+
+        if (userResult?.user?.id) {
+            const { data: clientAccount, error: accountError } =
+                await lordblessSupabase
+                    .from("client_accounts")
+                    .select("access_status")
+                    .eq("auth_user_id", userResult.user.id)
+                    .maybeSingle();
+            if (accountError) throw accountError;
+
+            if (clientAccount?.access_status === "invited") {
+                const { error: onboardingError } =
+                    await lordblessSupabase.rpc("complete_client_password_setup");
+                if (onboardingError) throw onboardingError;
+            }
+        }
 
         // Clear expired invitation/recovery tokens after successful password setup.
 window.history.replaceState(

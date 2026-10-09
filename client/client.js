@@ -569,9 +569,10 @@ function initialiseClientPortal() {
 
     initialiseClientOnboarding();
 
-    renderTransactionHistory();
-
-    renderDocuments();
+    if (isClientFullPortalActivated()) {
+        renderTransactionHistory();
+        renderDocuments();
+    }
 
     initialiseNavigation();
 
@@ -732,13 +733,9 @@ function getInitialAssessmentPaymentRequests() {
 
 function getClientOnboardingPaymentState() {
     const requests = getInitialAssessmentPaymentRequests();
-    const verifiedRequest = requests.find(request =>
-        String(request.status || "").toLowerCase() === "paid" &&
-        String(request.verificationStatus || "").toLowerCase() === "verified"
-    );
 
-    if (verifiedRequest) {
-        return { state: "full", request: verifiedRequest };
+    if (clientAccountAccessStatus === "active") {
+        return { state: "full", request: requests[0] || null };
     }
 
     const request = requests[0] || null;
@@ -761,7 +758,7 @@ function getClientOnboardingPaymentState() {
 
 
 function isClientFullPortalActivated() {
-    return getClientOnboardingPaymentState().state === "full";
+    return clientAccountAccessStatus === "active";
 }
 
 
@@ -789,18 +786,7 @@ function renderClientOnboardingPanel() {
             <p class="portal-eyebrow">CLIENT PORTAL ACTIVATED</p>
             <h2>WELCOME, ${name}</h2>
             <span class="client-onboarding-status">CLIENT PORTAL ACTIVATED</span>
-            <p>Your Initial Assessment &amp; 30-Minute Consultation payment has been verified.</p>
-            <p>Your full LORDBLESS CONSULTANCY Client Portal is now active.</p>
-            <div class="client-onboarding-verification-message">
-                <strong>Initial Assessment &amp; 30-Minute Consultation</strong><br>
-                Amount Paid: ${escapeHTML(amount)}<br>
-                Status: PAID &amp; VERIFIED
-            </div>
-            <div class="client-onboarding-actions">
-                <button type="button" class="primary-button" data-onboarding-action="view-receipt">
-                    VIEW RECEIPT
-                </button>
-            </div>
+            <p>Your LORDBLESS CONSULTANCY Client Portal access is active.</p>
             ${notice}
         `;
     } else if (onboarding.state === "awaiting_verification") {
@@ -946,23 +932,10 @@ async function handleClientPortalSession(session) {
 
         if (accountError) throw accountError;
 
-        if (account?.access_status === "invited") {
-            const { error: activationError } =
-                await lordblessSupabase.rpc("activate_client_account");
-            if (activationError) throw activationError;
-
-            const refreshedAccount =
-                await lordblessSupabase
-                    .from("client_accounts")
-                    .select("client_id, access_status")
-                    .eq("auth_user_id", session.user.id)
-                    .maybeSingle();
-
-            if (refreshedAccount.error) throw refreshedAccount.error;
-            account = refreshedAccount.data;
-        }
-
-        if (!account || account.access_status !== "active") {
+        if (
+            !account ||
+            !["activation_required", "active"].includes(account.access_status)
+        ) {
             clientAuthLookupUserId = null;
             clientAuthResolvedUserId = null;
             window.location.replace(
@@ -986,7 +959,13 @@ async function handleClientPortalSession(session) {
         }
 
         applyAuthenticatedClientRecord(client);
-        await loadAuthenticatedClientJourneys(client.id);
+        if (account.access_status === "active") {
+            await loadAuthenticatedClientJourneys(client.id);
+        } else {
+            LORDBLESS_CLIENT_ACCOUNT.transactions = [];
+            LORDBLESS_CLIENT_ACCOUNT.currentTransactionId = null;
+            clientApplicationJourneyId = null;
+        }
         clientAuthResolvedUserId = session.user.id;
 
         const clientApp =
@@ -1001,8 +980,12 @@ async function handleClientPortalSession(session) {
             initialiseClientPortal();
         } else {
             renderDashboard();
-            renderTransactionHistory();
-            renderDocuments();
+            if (account.access_status === "active") {
+                renderTransactionHistory();
+                renderDocuments();
+            } else {
+                LORDBLESS_CLIENT_ACCOUNT.transactions = [];
+            }
         }
     } catch (error) {
         clientAuthLookupUserId = null;
