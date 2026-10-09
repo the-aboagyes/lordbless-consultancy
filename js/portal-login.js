@@ -162,8 +162,9 @@ async function handlePortalSession(session) {
         const access = await resolvePortalAccess(session.user);
         if (version !== portalResolutionVersion) return;
 
-      if (access.invited) {
-    // Password setup is complete, but Finance has not activated access.
+     
+if (access.invited) {
+    portalSignOutButton.hidden = false;
     portalAuthMessage.dataset.error = "false";
     portalAuthMessage.textContent =
         "Your password is set. Your Client Portal access is pending Finance verification of your initial assessment payment.";
