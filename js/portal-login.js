@@ -162,11 +162,13 @@ async function handlePortalSession(session) {
         const access = await resolvePortalAccess(session.user);
         if (version !== portalResolutionVersion) return;
 
-        if (access.invited) {
-            // Invitation acceptance and password setup do not activate a client.
-            showPasswordResetForm(session);
-            return;
-        }
+      if (access.invited) {
+    // Password setup is complete, but Finance has not activated access.
+    portalAuthMessage.dataset.error = "false";
+    portalAuthMessage.textContent =
+        "Your password is set. Your Client Portal access is pending Finance verification of your initial assessment payment.";
+    return;
+}
 
         if (access.pending) {
             portalSignOutButton.hidden = false;
@@ -265,6 +267,13 @@ portalResetPasswordForm.addEventListener("submit", async event => {
     try {
         const { error } = await lordblessSupabase.auth.updateUser({ password: newPassword });
         if (error) throw error;
+
+        // Clear expired invitation/recovery tokens after successful password setup.
+window.history.replaceState(
+    {},
+    document.title,
+    window.location.pathname
+);
 
         portalRecoveryEmail = portalRecoveryEmail || portalEmailInput.value.trim();
         let signOutFailed = false;
