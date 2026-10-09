@@ -163,14 +163,20 @@ async function handlePortalSession(session) {
         const access = await resolvePortalAccess(session.user);
         if (version !== portalResolutionVersion) return;
 
-     
-if (access.invited) {
-    portalSignOutButton.hidden = false;
-    portalAuthMessage.dataset.error = "false";
-    portalAuthMessage.textContent =
-        "Your password is set. Your Client Portal access is pending Finance verification of your initial assessment payment.";
-    return;
-}
+        if (access.invited) {
+            const { data: accessStatus, error } =
+                await lordblessSupabase.rpc("complete_client_password_setup");
+            if (error) throw error;
+            if (version !== portalResolutionVersion) return;
+
+            if (!["activation_required", "active"].includes(accessStatus)) {
+                throw new Error("Your Client Portal access could not be confirmed.");
+            }
+
+            portalAuthMessage.textContent = "Access confirmed. Opening your portal...";
+            routePortalRole("client");
+            return;
+        }
 
         if (access.pending) {
             portalSignOutButton.hidden = false;
