@@ -257,6 +257,7 @@ const LORDBLESS_CLIENT_DEVELOPMENT_FIXTURE = {
 
 const LORDBLESS_CLIENT_ACCOUNT = {
     id: null,
+    clientCode: null,
     fullName: "",
     email: "",
     whatsapp: "",
@@ -604,6 +605,7 @@ function applyAuthenticatedClientRecord(client) {
         LORDBLESS_CLIENT_ACCOUNT,
         {
             id: client.id,
+            clientCode: client.client_code || client.clientCode || null,
             fullName: client.full_name || "",
             email: client.email || "",
             whatsapp: client.whatsapp || "",
@@ -949,7 +951,7 @@ async function handleClientPortalSession(session) {
         const { data: client, error: clientError } =
             await lordblessSupabase
                 .from("clients")
-                .select("id, full_name, email, whatsapp, current_country, nationality")
+                .select("id, client_code, full_name, email, whatsapp, current_country, nationality")
                 .eq("id", account.client_id)
                 .maybeSingle();
 
@@ -1068,6 +1070,8 @@ function populateClientIdentity() {
             LORDBLESS_CLIENT_ACCOUNT.fullName
         );
 
+    const displayClientId = getClientDisplayId();
+
 
     setText(
         "client-name",
@@ -1076,7 +1080,7 @@ function populateClientIdentity() {
 
     setText(
         "client-id",
-        LORDBLESS_CLIENT_ACCOUNT.id
+        displayClientId
     );
 
     setText(
@@ -1092,7 +1096,7 @@ function populateClientIdentity() {
 
     setText(
         "sidebar-client-id",
-        LORDBLESS_CLIENT_ACCOUNT.id
+        displayClientId
     );
 
 
@@ -1109,12 +1113,12 @@ function populateClientIdentity() {
 
     setText(
         "summary-client-id",
-        LORDBLESS_CLIENT_ACCOUNT.id
+        displayClientId
     );
 
     setText(
     "support-client-id",
-    LORDBLESS_CLIENT_ACCOUNT.id
+    displayClientId
 );
 
     setText(
@@ -1124,7 +1128,7 @@ function populateClientIdentity() {
 
     setText(
         "profile-client-id",
-        LORDBLESS_CLIENT_ACCOUNT.id
+        displayClientId
     );
 
     setText(
@@ -1169,6 +1173,19 @@ function populateClientIdentity() {
 
     updatePassportProfileStatus();
 
+}
+
+
+function getClientDisplayId() {
+    if (LORDBLESS_CLIENT_ACCOUNT.clientCode) {
+        return LORDBLESS_CLIENT_ACCOUNT.clientCode;
+    }
+
+    const internalId = String(LORDBLESS_CLIENT_ACCOUNT.id || "").trim();
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+        .test(internalId);
+
+    return isUuid ? "ID pending" : internalId || "ID pending";
 }
 
 

@@ -827,6 +827,7 @@ function mapSupabaseEnquiry(record) {
         client: {
             ...client,
             id: client.id || record.client_id || details.clientId || "",
+            clientCode: client.client_code || client.clientCode || "",
             fullName: clientName,
             name: client.name || clientName,
             email: client.email || record.client_email || record.email || "",
@@ -2631,6 +2632,7 @@ function getAdminClients() {
         .filter(client => client?.id)
         .map(client => ({
             ...client,
+            clientCode: client.clientCode || client.client_code || "",
             name: client.name || client.fullName || "Client",
             fullName: client.fullName || client.name || "Client"
         }));
@@ -2649,6 +2651,18 @@ function getAdminClients() {
             )
     );
 
+}
+
+
+function getAdminClientDisplayId(client) {
+    const permanentId = client?.clientCode || client?.client_code;
+    if (permanentId) return permanentId;
+
+    const internalId = String(client?.id || "").trim();
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+        .test(internalId);
+
+    return isUuid ? "ID pending" : internalId || "ID pending";
 }
 
 
@@ -3342,7 +3356,7 @@ function renderAdminClientRow(
                     </h3>
 
                     <div class="lbc-client-id">
-                        ${escapeHTML(client.id)}
+                        ${escapeHTML(getAdminClientDisplayId(client))}
                     </div>
 
                 </div>

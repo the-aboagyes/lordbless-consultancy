@@ -29,6 +29,17 @@
             .replace(/\b\w/g, character => character.toUpperCase());
     }
 
+    function clientDisplayId(client) {
+        const permanentId = client?.clientCode || client?.client_code;
+        if (permanentId) return permanentId;
+
+        const internalId = String(client?.id || "").trim();
+        const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+            .test(internalId);
+
+        return isUuid ? "ID pending" : internalId || "ID pending";
+    }
+
     function detailRows(values) {
         return Object.entries(values || {})
             .map(([key, value]) => ({ key, value: textValue(value) }))
@@ -186,6 +197,7 @@
                     <section class="detail-card">
                         <h3>Client Information</h3>
                         ${detailRows({
+                            "Client ID": clientDisplayId(client),
                             "Full name": clientName,
                             Email: client.email || enquiry.client_email || enquiry.email,
                             WhatsApp: client.whatsapp || client.phone || enquiry.client_whatsapp || enquiry.whatsapp,
