@@ -948,12 +948,21 @@ async function handleClientPortalSession(session) {
 
         clientAccountAccessStatus = account.access_status;
 
-        const { data: client, error: clientError } =
-            await lordblessSupabase
+        let clientResult = await lordblessSupabase
+            .from("clients")
+            .select("id, client_code, full_name, email, whatsapp, current_country, nationality")
+            .eq("id", account.client_id)
+            .maybeSingle();
+
+        if (isClientCodeColumnUnavailable(clientResult.error)) {
+            clientResult = await lordblessSupabase
                 .from("clients")
-                .select("id, client_code, full_name, email, whatsapp, current_country, nationality")
+                .select("id, full_name, email, whatsapp, current_country, nationality")
                 .eq("id", account.client_id)
                 .maybeSingle();
+        }
+
+        const { data: client, error: clientError } = clientResult;
 
         if (clientError) throw clientError;
         if (!client || client.id !== account.client_id) {
@@ -999,6 +1008,21 @@ async function handleClientPortalSession(session) {
         window.location.replace("../portal-login.html?error=client-account-unavailable");
     }
 
+}
+
+
+function isClientCodeColumnUnavailable(error) {
+    if (!error) return false;
+
+    const message = [error.message, error.details, error.hint]
+        .filter(Boolean)
+        .join(" ");
+    if (["42703", "PGRST204"].includes(error.code) && /client_code/i.test(message)) {
+        return true;
+    }
+
+    return /client_code/i.test(message) &&
+        /(column|schema cache|does not exist|could not find|not found)/i.test(message);
 }
 
 
